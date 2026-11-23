@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/blatt-core", "crates/blatt-app"]
+members = ["crates/aesmyra-core", "crates/aesmyra-app"]
 resolver = "2"
 
 [workspace.package]

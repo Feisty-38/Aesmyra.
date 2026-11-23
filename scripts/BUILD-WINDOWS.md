@@ -1,21 +1,21 @@
-# Blatt für Windows bauen
+# Aesmyra. für Windows bauen
 
-Blatt ist eine Tauri-2-App. Für Windows entstehen zwei Installationsdateien:
+Aesmyra. ist eine Tauri-2-App. Für Windows entstehen zwei Installationsdateien:
 
 | Datei | Typ | Erzeugt mit |
 | --- | --- | --- |
-| `Blatt_0.1.0_x64_en-US.msi` | MSI (WiX) | WiX Toolset 3.14, von Tauri automatisch geladen |
-| `Blatt_0.1.0_x64-setup.exe` | NSIS-Setup | NSIS 3.13, von Tauri automatisch geladen |
+| `Aesmyra._0.1.0_x64_en-US.msi` | MSI (WiX) | WiX Toolset 3.14, von Tauri automatisch geladen |
+| `Aesmyra._0.1.0_x64-setup.exe` | NSIS-Setup | NSIS 3.13, von Tauri automatisch geladen |
 
-Die Version stammt aus `crates/blatt-app/tauri.conf.json` (`"version": "0.1.0"`), **nicht** aus dem Git-Tag. Vor einem Release dort erhöhen.
+Die Version stammt aus `crates/aesmyra-app/tauri.conf.json` (`"version": "0.1.0"`), **nicht** aus dem Git-Tag. Vor einem Release dort erhöhen.
 
 ## Warum Windows und nicht dieser Linux-Rechner
 
 - **MSI geht nur unter Windows.** Tauri baut MSI mit dem WiX Toolset, das Windows-Binaries sind.
 - Die Tauri-CLI bietet unter Linux nur `deb`, `rpm` und `appimage` als Bundle-Ziele an — `msi` und `nsis` sind dort nicht wählbar.
-- `crates/blatt-app/tauri.conf.json` listet unter `bundle.targets` nur `["deb", "appimage"]`. Unter Windows **muss** deshalb `--bundles "msi,nsis"` mitgegeben werden; ohne diese Option will die CLI die Linux-Ziele bauen und bricht ab.
+- `crates/aesmyra-app/tauri.conf.json` listet unter `bundle.targets` nur `["deb", "appimage"]`. Unter Windows **muss** deshalb `--bundles "msi,nsis"` mitgegeben werden; ohne diese Option will die CLI die Linux-Ziele bauen und bricht ab.
 - NSIS ließe sich theoretisch aus Linux cross-kompilieren (Mingw + LLVM + NSIS). Tauri nennt das ausdrücklich einen letzten Ausweg; hier wird dieser Weg nicht verwendet.
-- Das Icon ist vorhanden: `crates/blatt-app/icons/icon.ico`. `tauri-build` nimmt es automatisch, auch ohne `.ico`-Eintrag in `bundle.icon` — der Fallback ist genau dieser Pfad.
+- Das Icon ist vorhanden: `crates/aesmyra-app/icons/icon.ico`. `tauri-build` nimmt es automatisch, auch ohne `.ico`-Eintrag in `bundle.icon` — der Fallback ist genau dieser Pfad.
 
 ## Weg 1: GitHub Actions (empfohlen)
 
@@ -23,10 +23,10 @@ Die Workflow-Datei liegt unter `.github/workflows/build.yml`.
 
 - **Auslöser:** manuell (`workflow_dispatch`), Push auf `main`, Push eines Tags `v*`.
 - **Runner:** `windows-latest` (x64), Rust stable MSVC, Node.js LTS.
-- **Befehl:** `tauri build --bundles "msi,nsis" --ci` im Ordner `crates/blatt-app`.
-- **Ergebnis:** Artefakt `blatt-windows-x64` mit MSI, Setup.exe und `SHA256SUMS.txt`, 30 Tage aufbewahrt.
+- **Befehl:** `tauri build --bundles "msi,nsis" --ci` im Ordner `crates/aesmyra-app`.
+- **Ergebnis:** Artefakt `aesmyra-windows-x64` mit MSI, Setup.exe und `SHA256SUMS.txt`, 30 Tage aufbewahrt.
 
-Download: Repository → **Actions** → den Lauf öffnen → unten bei **Artifacts** das Paket `blatt-windows-x64` herunterladen.
+Download: Repository → **Actions** → den Lauf öffnen → unten bei **Artifacts** das Paket `aesmyra-windows-x64` herunterladen.
 
 Der Workflow signiert nicht. Die Installer laufen daher beim ersten Start durch SmartScreen („Unbekannter Herausgeber“). Siehe Abschnitt „Signieren“.
 
@@ -63,7 +63,7 @@ rustc -vV     # host: x86_64-pc-windows-msvc
 ```powershell
 npm install --global "@tauri-apps/cli@^2"
 
-cd C:\Pfad\zu\grace-blatt-rs\crates\blatt-app
+cd C:\Pfad\zu\aesmyra\crates\aesmyra-app
 tauri build --bundles "msi,nsis"
 ```
 
@@ -72,7 +72,7 @@ tauri build --bundles "msi,nsis"
 ```powershell
 cargo install tauri-cli --version "^2.0.0" --locked
 
-cd C:\Pfad\zu\grace-blatt-rs\crates\blatt-app
+cd C:\Pfad\zu\aesmyra\crates\aesmyra-app
 cargo tauri build --bundles "msi,nsis"
 ```
 
@@ -80,17 +80,17 @@ cargo tauri build --bundles "msi,nsis"
 
 ### Ergebnis
 
-`crates/blatt-app` ist ein Member des Workspace, deshalb liegt `target/` im **Projektwurzelverzeichnis**, nicht im Crate-Ordner:
+`crates/aesmyra-app` ist ein Member des Workspace, deshalb liegt `target/` im **Projektwurzelverzeichnis**, nicht im Crate-Ordner:
 
 ```text
-grace-blatt-rs\target\release\bundle\msi\Blatt_0.1.0_x64_en-US.msi
-grace-blatt-rs\target\release\bundle\nsis\Blatt_0.1.0_x64-setup.exe
+aesmyra\target\release\bundle\msi\Aesmyra._0.1.0_x64_en-US.msi
+aesmyra\target\release\bundle\nsis\Aesmyra._0.1.0_x64-setup.exe
 ```
 
 Prüfsummen bilden:
 
 ```powershell
-Get-FileHash .\target\release\bundle\nsis\Blatt_0.1.0_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\target\release\bundle\nsis\Aesmyra._0.1.0_x64-setup.exe -Algorithm SHA256
 ```
 
 ### Wenn MSI Ärger macht
@@ -105,7 +105,7 @@ WiX 3 wird seit Februar 2025 nicht mehr gepflegt. Scheitert `light.exe` ohne eig
 
 ## WebView2: online oder offline
 
-Standard ist `downloadBootstrapper`: Der Installer lädt die WebView2-Runtime bei der Installation nach (wenige MB, Internet nötig). Für Rechner ohne Internet lässt sich das umstellen — Datei `crates/blatt-app/tauri.windows.conf.json` anlegen:
+Standard ist `downloadBootstrapper`: Der Installer lädt die WebView2-Runtime bei der Installation nach (wenige MB, Internet nötig). Für Rechner ohne Internet lässt sich das umstellen — Datei `crates/aesmyra-app/tauri.windows.conf.json` anlegen:
 
 ```json
 {
@@ -143,7 +143,7 @@ In GitHub Actions muss das Zertifikat vor dem Build in den Zertifikatsspeicher i
 
 ## Optionaler Feinschliff
 
-Ohne `publisher` steht im MSI als Hersteller der zweite Teil der Kennung, also `grace` (`dev.grace.blatt`). Das lässt sich zusammen mit den Installer-Icons in `crates/blatt-app/tauri.windows.conf.json` sauber setzen:
+Ohne `publisher` steht im MSI als Hersteller der zweite Teil der Kennung, also `grace` (`dev.grace.aesmyra`). Das lässt sich zusammen mit den Installer-Icons in `crates/aesmyra-app/tauri.windows.conf.json` sauber setzen:
 
 ```json
 {
@@ -159,12 +159,12 @@ Ohne `publisher` steht im MSI als Hersteller der zweite Teil der Kennung, also `
 }
 ```
 
-Ohne `installerIcon` verwendet das NSIS-Setup das Standard-Icon von NSIS, nicht das Blatt-Icon. Das MSI nutzt bereits `icons/icon.ico`.
+Ohne `installerIcon` verwendet das NSIS-Setup das Standard-Icon von NSIS, nicht das Aesmyra.-Icon. Das MSI nutzt bereits `icons/icon.ico`.
 
 ## Bekannte Eigenheiten unter Windows
 
-- **Konfiguration:** `%APPDATA%\Blatt\config.json`.
-- **Zugangsschlüssel:** Blatt versucht beim Start zusätzlich, `%HOME%\.hermes\.env` zu lesen. Bei aus dem Explorer gestarteten Programmen ist `HOME` unter Windows normalerweise nicht gesetzt (nur `USERPROFILE`). Den Schlüssel deshalb in den Einstellungen der App eintragen.
+- **Konfiguration:** `%APPDATA%\Aesmyra.\config.json`.
+- **Zugangsschlüssel:** Aesmyra. versucht beim Start zusätzlich, `%HOME%\.hermes\.env` zu lesen. Bei aus dem Explorer gestarteten Programmen ist `HOME` unter Windows normalerweise nicht gesetzt (nur `USERPROFILE`). Den Schlüssel deshalb in den Einstellungen der App eintragen.
 - **Installationsart:** Das MSI installiert systemweit (`perMachine`, UAC-Abfrage). Das NSIS-Setup installiert standardmäßig nur für den aktuellen Benutzer, ohne Adminrechte.
 - **Erster Build:** Dauert einige Minuten und lädt WiX/NSIS nach. Ein Proxy oder eine Firewall kann das blockieren.
 - **Virenscanner:** Unsigned NSIS-Installer werden gelegentlich verzögert geprüft; das ist kein Build-Fehler.

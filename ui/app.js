@@ -1,9 +1,9 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════════
-   Blatt — Client für Hermes (Rust-Kern, Tauri-Hülle)
+   Aesmyra. — Client für Hermes (Rust-Kern, Tauri-Hülle)
 
-   Drei Flächen: Verzeichnis, Leseseite, Freigaben. Der Kern liefert
+   Drei Flächen: Übersicht, Gespräch, Freigaben. Der Kern liefert
    Sitzungen, Verlauf und Ereignisse fertig; hier wird nur gezeichnet.
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -24,7 +24,7 @@ const S = {
   runId: null,
   /* Lauf-Generation: jedes neue Ereignis-Abo zählt hoch, alte werden verworfen. */
   gen: 0,
-  /* Ein neues Kapitel ist erst beim ersten Senden eine Sitzung auf dem Server. */
+  /* Ein neues Gespräch ist erst beim ersten Senden eine Sitzung auf dem Server. */
   draft: false,
   navActive: 'index',
   setupBack: null,
@@ -38,10 +38,10 @@ const S = {
   approvals: [],
   suppress: 0,
   err: '',
-  restores: readStore('blatt.scroll', {}),
+  restores: readStore('aesmyra.scroll', {}),
 };
 
-/* Zwischenspeicher: zwölf Kapitel reichen für flüssiges Wischen. */
+/* Zwischenspeicher: zwölf Gespräche reichen für flüssiges Wischen. */
 const CACHE = new Map();
 const CACHE_MAX = 12;
 
@@ -208,7 +208,7 @@ function md(src) {
   return out.join('\n').replace(/\u0000(\d+)\u0000/g, (_m, i) => blocks[+i] || '');
 }
 
-/* ── Werkzeuge als Randnotizen ────────────────────────────────────── */
+/* ── Werkzeuge als Notizen ────────────────────────────────────── */
 
 function parseJson(s) {
   try { return JSON.parse(s); } catch { return null; }
@@ -248,7 +248,7 @@ function reasonNote(text, n) {
 
 /* ── Abschnitte zeichnen ──────────────────────────────────────────── */
 
-/* Fußnotenzeichen hinter den letzten Satz setzen; ohne Absatz anhängen. */
+/* Markierungszeichen hinter den letzten Satz setzen; ohne Absatz anhängen. */
 function withMarkers(html, extra) {
   if (!extra) return html;
   if (/<\/p>\s*$/.test(html)) return html.replace(/<\/p>\s*$/, ` ${extra}</p>`);
@@ -338,7 +338,7 @@ function renderChapter() {
   S.hits = [];
   S.hitIdx = -1;
 
-  const title = S.cur ? (S.cur.title || S.cur.preview || 'Neues Kapitel') : 'Neues Kapitel';
+  const title = S.cur ? (S.cur.title || S.cur.preview || 'Neues Gespräch') : 'Neues Gespräch';
   const dekParts = [];
   if (S.cur) {
     if (S.cur.started_at) dekParts.push(fmtClock(S.cur.started_at));
@@ -368,11 +368,11 @@ function updateHeader() {
   const kep = $('#kep');
   if (kep) {
     kep.innerHTML = idx >= 0
-      ? `Kapitel <b>${roman(idx + 1)}</b> von ${roman(n)}`
-      : `Blatt · <b>${n} Kapitel</b>`;
+      ? `Gespräch <b>${roman(idx + 1)}</b> von ${roman(n)}`
+      : `${n} ${n === 1 ? 'Gespräch' : 'Gespräche'}`;
   }
   const pg = $('#pgnum');
-  if (pg) pg.textContent = idx >= 0 ? `Blatt ${idx + 1}/${n}` : `${n} Kapitel`;
+  if (pg) pg.textContent = idx >= 0 ? `${idx + 1}/${n}` : `${n} ${n === 1 ? 'Gespräch' : 'Gespräche'}`;
   renderDots(idx);
 }
 
@@ -403,7 +403,7 @@ function updatePageNo() {
   if (!el) return;
   const id = S.lastId || (S.cur && S.cur.id);
   const i = id ? S.sessions.findIndex((s) => s.id === id) : -1;
-  el.textContent = 'S. ' + pad3(i >= 0 ? i + 1 : 1);
+  el.textContent = 'Nr. ' + pad3(i >= 0 ? i + 1 : 1);
 }
 
 function chapterRow(s, i) {
@@ -425,7 +425,7 @@ function renderIndex(animate = false) {
   if (!host) return;
   host.innerHTML = S.sessions.length
     ? S.sessions.map(chapterRow).join('')
-    : '<div class="empty">Noch kein Kapitel.</div>';
+    : '<div class="empty">Noch kein Gespräch.</div>';
 
   /* Zeilen laufen gestaffelt ein, aber nur beim Wechsel ins Verzeichnis. */
   host.classList.remove('enter');
@@ -459,7 +459,7 @@ async function loadSessions(silent = false) {
   }
 }
 
-/* ── Aktionsblatt ─────────────────────────────────────────────────── */
+/* ── Aktionsaesmyra ─────────────────────────────────────────────────── */
 
 function openSheet(id) {
   const s = S.sessions.find((x) => x.id === id);
@@ -497,11 +497,11 @@ async function sheetAction(act) {
       if (S.cur && S.cur.id === id) renderChapter();
       closeSheet();
     } else if (act === 'del') {
-      if (!confirm('Kapitel wirklich löschen?')) return;
+      if (!confirm('Gespräch wirklich löschen?')) return;
       if (S.streaming && S.cur && S.cur.id === id) await abortStream();
       await invoke('session_delete', { sessionId: id });
       CACHE.delete(id);
-      if (S.lastId === id) { S.lastId = null; writeStore('blatt.last', ''); }
+      if (S.lastId === id) { S.lastId = null; writeStore('aesmyra.last', ''); }
       if (S.cur && S.cur.id === id) {
         S.cur = null;
         S.turns = [];
@@ -520,11 +520,11 @@ async function sheetAction(act) {
 
 /* ── Sitzungen öffnen und anlegen ─────────────────────────────────── */
 
-/* „Neues Kapitel" legt nur eine leere Seite an. Die Sitzung auf dem Server
+/* „Neues Gespräch" legt nur einen leeren Entwurf an. Die Sitzung auf dem Server
    entsteht erst beim ersten Senden — wer die Seite verlässt, hinterlässt nichts. */
 async function newChapter() {
   if (S.streaming) {
-    if (!confirm('Es läuft noch eine Antwort. Trotzdem ein neues Kapitel?')) return;
+    if (!confirm('Es läuft noch eine Antwort. Trotzdem ein neues Gespräch?')) return;
     await abortStream();
   }
 
@@ -540,7 +540,7 @@ async function newChapter() {
   setTimeout(() => { const i = $('#input'); if (i) i.focus(); }, 80);
 }
 
-/* Erste Sitzung eines Entwurfs anlegen; danach ist es ein gewöhnliches Kapitel.
+/* Erste Sitzung eines Entwurfs anlegen; danach ist es ein gewöhnliches Gespräch.
    Ein zweiter Aufruf während des Anlegens hängt sich an denselben Vorgang. */
 let creatingSession = null;
 
@@ -559,7 +559,7 @@ async function ensureSession() {
     S.cur = s;
     S.draft = false;
     S.lastId = s.id;
-    writeStore('blatt.last', s.id);
+    writeStore('aesmyra.last', s.id);
     return s;
   })();
 
@@ -590,7 +590,7 @@ async function openSession(id) {
   S.draft = false;
   S.cur = target;
   S.lastId = id;
-  writeStore('blatt.last', id);
+  writeStore('aesmyra.last', id);
   updatePageNo();
   showView('reading');
 
@@ -634,7 +634,7 @@ async function openSession(id) {
       S.turns = [];
       renderChapter();
       setStatus('Fehler', 'err');
-      toast('Kapitel konnte nicht geladen werden: ' + errText(err), true);
+      toast('Gespräch konnte nicht geladen werden: ' + errText(err), true);
     }
   }
 }
@@ -682,7 +682,7 @@ function saveScroll() {
   if (!S.cur) return;
   if (document.body.dataset.view !== 'reading') return;
   S.restores[S.cur.id] = scrollTopNow();
-  writeStore('blatt.scroll', S.restores);
+  writeStore('aesmyra.scroll', S.restores);
 }
 
 function restoreScroll(id) {
@@ -727,16 +727,16 @@ async function send(text) {
 
   if (S.streaming) { await steer(text); return; }
 
-  /* Erste Zeile eines neuen Kapitels: Sitzung erst jetzt anlegen. */
+  /* Erste Zeile eines neuen Gesprächs: Sitzung erst jetzt anlegen. */
   if (!S.cur) {
     try {
       await ensureSession();
     } catch (err) {
-      toast('Neues Kapitel fehlgeschlagen: ' + errText(err), true);
+      toast('Neues Gespräch fehlgeschlagen: ' + errText(err), true);
       return;
     }
     S.turns = [];
-    /* Mit der Sitzung ist das Kapitel der Grund der Ansicht, nicht der Knopf. */
+    /* Mit der Sitzung ist das Gespräch der Grund der Ansicht, nicht der Knopf. */
     S.navActive = 'reading';
     markNav();
   }
@@ -1054,7 +1054,7 @@ function renderApprovals() {
   }).join('');
 }
 
-/* ── Suche im Kapitel ─────────────────────────────────────────────── */
+/* ── Suche im Gespräch ─────────────────────────────────────────────── */
 
 function clearMarks() {
   const page = $('#page');
@@ -1078,7 +1078,7 @@ function highlight(q) {
 
   const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
 
-  /* Nur das Gespräch: Anfrage und Fließtext. Randnotizen, Werkzeugausgaben,
+  /* Nur das Gespräch: Anfrage und Fließtext. Notizen, Werkzeugausgaben,
      Code und Anhänge bleiben außen vor. */
   const roots = $$('.req, .prose', page).filter((el) => !el.closest('.notes, pre, code'));
   const nodes = [];
@@ -1126,7 +1126,7 @@ function nextHit() {
   if (cnt) cnt.textContent = `${S.hitIdx + 1} / ${S.hits.length}`;
 }
 
-/* ── Kapitel wechseln: Punkt halten, dann ziehen ──────────────────── */
+/* ── Gespräch wechseln: Punkt halten, dann ziehen ──────────────────── */
 
 function chapterStep(dir) {
   if (document.body.dataset.view !== 'reading') return;
@@ -1135,7 +1135,7 @@ function chapterStep(dir) {
   const i = S.sessions.findIndex((s) => s.id === S.cur?.id);
   if (i < 0) return;
   const j = i + dir;
-  if (j < 0 || j >= n) { toast(dir > 0 ? 'Letztes Kapitel' : 'Erstes Kapitel'); return; }
+  if (j < 0 || j >= n) { toast(dir > 0 ? 'Letztes Gespräch' : 'Erstes Gespräch'); return; }
 
   const page = $('#page');
   page.classList.remove('swap');
@@ -1154,7 +1154,7 @@ function scrubBegin() {
   SCRUB.from = i;
   SCRUB.index = i;
   document.body.classList.add('scrubbing');
-  setStatus('Kapitel wischen', 'warn');
+  setStatus('Gespräch wischen', 'warn');
   navigator.vibrate?.(10);
 }
 
@@ -1165,7 +1165,7 @@ function scrubTo(i) {
   SCRUB.index = i;
   const s = S.sessions[i];
   const kep = $('#kep');
-  if (kep) kep.innerHTML = `Kapitel <b>${roman(i + 1)}</b> von ${roman(n)}`;
+  if (kep) kep.innerHTML = `Gespräch <b>${roman(i + 1)}</b> von ${roman(n)}`;
   const pg = $('#pgnum');
   if (pg) pg.textContent = trim(s.title || s.preview || 'ohne Titel', 30);
   renderDots(i);
@@ -1283,7 +1283,7 @@ function closeSetup() {
   const nav = S.setupBack ? S.setupBack.nav : null;
   S.setupBack = null;
   showView(back, nav);
-  /* Zurück auf der Leseseite wieder dorthin, wo man war. */
+  /* Zurück in der Gesprächsansicht wieder dorthin, wo man war. */
   if (back === 'reading' && S.cur) requestAnimationFrame(() => restoreScroll(S.cur.id));
 }
 
@@ -1328,11 +1328,11 @@ async function setupTest() {
 /* ── Ansichten und Leiste ─────────────────────────────────────────── */
 
 const NAV = [
-  { id: 'reading', icon: 'menu_book', label: 'Lesen' },
-  { id: 'index', icon: 'list', label: 'Verzeichnis' },
+  { id: 'reading', icon: 'menu_book', label: 'Gespräch' },
+  { id: 'index', icon: 'list', label: 'Übersicht' },
   { id: 'write', icon: 'edit', label: 'Schreiben' },
   { id: 'approvals', icon: 'verified', label: 'Freigaben' },
-  { id: 'new', icon: 'inbox', label: 'Neues Kapitel' },
+  { id: 'new', icon: 'inbox', label: 'Neues Gespräch' },
   { id: 'setup', icon: 'settings', label: 'Einstellungen' },
 ];
 
@@ -1366,14 +1366,14 @@ function showView(name, nav) {
 
   document.body.dataset.view = name;
 
-  /* „Schreiben" und „Neues Kapitel" bleiben hervorgehoben, solange sie der
-     Grund für die Leseseite sind. Jeder andere Weg setzt auf die Ansicht zurück. */
+  /* „Schreiben" und „Neues Gespräch" bleiben hervorgehoben, solange sie der
+     Grund für die Gesprächsansicht sind. Jeder andere Weg setzt auf die Ansicht zurück. */
   if (name === 'reading' && (nav === 'write' || nav === 'new')) S.navActive = nav;
   else S.navActive = name;
 
   markNav();
 
-  /* Die Suche gehört zur Leseseite und schließt mit ihr. */
+  /* Die Suche gehört zur Gesprächsansicht und schließt mit ihr. */
   if (name !== 'reading' && document.body.classList.contains('find-open')) {
     document.body.classList.remove('find-open');
     clearMarks();
@@ -1401,9 +1401,9 @@ function showReading() {
   }
 
   if (!S.cur) {
-    const id = S.lastId || localStorage.getItem('blatt.last');
+    const id = S.lastId || localStorage.getItem('aesmyra.last');
     const target = S.sessions.find((s) => s.id === id) || S.sessions[0];
-    if (!target) { toast('Noch kein Kapitel'); showView('index'); return; }
+    if (!target) { toast('Noch kein Gespräch'); showView('index'); return; }
     openSession(target.id);
     return;
   }
@@ -1662,7 +1662,7 @@ async function boot() {
     const el = $('#setInfo');
     if (el) {
       const plat = PLAT[info.platform] || info.platform || '';
-      el.textContent = `Blatt ${info.version} · ${plat}/${info.arch}`;
+      el.textContent = `Aesmyra. ${info.version} · ${plat}/${info.arch}`;
     }
   } catch {
     document.body.dataset.platform = 'pc';
@@ -1680,7 +1680,7 @@ async function boot() {
 
   const ok = await loadSessions(true);
 
-  const last = localStorage.getItem('blatt.last');
+  const last = localStorage.getItem('aesmyra.last');
   if (last && S.sessions.some((s) => s.id === last)) S.lastId = last;
 
   showView('index');

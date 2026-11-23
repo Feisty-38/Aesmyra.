@@ -1,6 +1,6 @@
-# Aesmyra
+# Aesmyra.
 
-**Hermes-Sitzungen als Kapitel — für Windows, Linux und Android.**
+**Hermes-Gespräche in einer fortlaufenden Übersicht — für Windows, Linux und Android.**
 
 ![Status](https://img.shields.io/badge/Status-Alpha-orange)
 ![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux%20%7C%20Android-blueviolet)
@@ -22,44 +22,42 @@
 
 ## Was ist Aesmyra?
 
-Aesmyra ist eine eigenständige Oberfläche für [Hermes Agent](https://hermes-agent.nousresearch.com/). Statt eines endlosen Chatfensters zeigt Aesmyra ein Blatt: Jede Sitzung wird ein Kapitel, römisch nummeriert, mit Vorschau und Zeitangabe. Werkzeugaufrufe erscheinen als schmale Randnotizen, Denknotizen als kursive Einschübe, Freigaben als Kasten mitten im Text. Wer lange mit einem Assistenten arbeitet, soll den Faden behalten — nicht in einer Liste aus Sprechblasen suchen.
+Aesmyra ist eine eigenständige Oberfläche für [Hermes Agent](https://hermes-agent.nousresearch.com/). Statt eines endlosen Chatfensters zeigt Aesmyra eine fortlaufende Übersicht: Jede Sitzung wird ein Gespräch, römisch nummeriert, mit Vorschau und Zeitangabe. Werkzeugaufrufe erscheinen als schmale Notizen, Denkschritte als kursive Einschübe, Freigaben als Kasten mitten im Text. Wer lange mit einem Assistenten arbeitet, soll den Faden behalten — nicht in einer Liste aus Sprechblasen suchen.
 
 Der Client spricht ausschließlich mit dem Hermes-API-Server auf dem eigenen Rechner oder im eigenen Netz (Standard `http://127.0.0.1:8642`), per HTTP und SSE. Kein Cloud-Dienst dazwischen, keine Konten, keine Telemetrie.
 
 Technisch ist Aesmyra eine Tauri-2-Anwendung: ein Rust-Kern für Netzwerk, Verlauf und Konfiguration, darüber eine Oberfläche aus HTML, CSS und ES2020 — ohne Framework, ohne Bundler, ohne Build-Schritt für das Frontend.
 
-> **Arbeitstitel:** Die aktuellen Builds tragen noch den Namen **Blatt** — in der Oberfläche, in den Paketnamen (`blatt-app`, `blatt-core`) und in den Konfigurationspfaden (`~/.config/Blatt`). Aesmyra ist der Projektname; die Umbenennung im Code steht noch aus.
-
 ## Bilder
 
-![Kapitelverzeichnis am Rechner](docs/bilder/pc-verzeichnis.png)
+![Übersicht am Rechner](docs/bilder/pc-verzeichnis.png)
 
-| Verzeichnis auf Android | Leseseite |
+| Übersicht auf Android | Gesprächsansicht |
 | --- | --- |
-| ![Kapitelverzeichnis auf Android](docs/bilder/mobil-verzeichnis.png) | ![Leseseite mit Randnotizen](docs/bilder/mobil-leseseite.png) |
+| ![Übersicht auf Android](docs/bilder/mobil-verzeichnis.png) | ![Gesprächsansicht mit Notizen](docs/bilder/mobil-leseseite.png) |
 
-| Kapitel-Aktionen | Einrichtung |
+| Gesprächs-Aktionen | Einrichtung |
 | --- | --- |
-| ![Aktionsblatt eines Kapitels](docs/bilder/mobil-aktionen.png) | ![Einrichtung von Server und Schlüssel](docs/bilder/mobil-einrichtung.png) |
+| ![Aktionsmenü eines Gesprächs](docs/bilder/mobil-aktionen.png) | ![Einrichtung von Server und Schlüssel](docs/bilder/mobil-einrichtung.png) |
 
 ## Funktionen
 
-### Verzeichnis
+### Übersicht
 
-- **Kapitel statt Chats:** jede Sitzung als Kapitel mit römischer Ziffer, Titel, Vorschau und relativer Zeitangabe.
-- **Angeheftete Kapitel** stehen oben und sind mit einem Punkt markiert.
+- **Gespräche statt Chats:** jede Sitzung als Eintrag mit römischer Ziffer, Titel, Vorschau und relativer Zeitangabe.
+- **Angeheftete Gespräche** stehen oben und sind mit einem Punkt markiert.
 - **Langes Tippen oder Rechtsklick** öffnet die Aktionen: anheften, umbenennen, löschen.
-- **Seitenzahl** oben rechts (`S. 006`) zeigt, wo im Blatt man gerade steht.
+- **Nummer** oben rechts (`Nr. 006`) zeigt die Stelle in der Übersicht.
 
-### Leseseite
+### Gesprächsansicht
 
 - **Markdown** mit Überschriften, Listen, Tabellen, Code und Fußnoten.
-- **Randnotizen:** jeder Werkzeugaufruf erscheint als schmale Zeile mit Name und Kurzfassung der Argumente, aufklappbar bis zur vollständigen Ausgabe.
+- **Notizen:** jeder Werkzeugaufruf erscheint als schmale Zeile mit Name und Kurzfassung der Argumente, aufklappbar bis zur vollständigen Ausgabe.
 - **Denknotizen** werden als kursive, abgesetzte Absätze gezeigt — sichtbar, aber nicht im Weg.
 - **Live-Abschnitt** während eines Laufs; die Statuszeile nennt den Zustand (bereit, läuft, getrennt, neu verbunden).
 - **Freigabekasten** direkt im Text, wenn ein Werkzeug auf Erlaubnis wartet.
-- **Suche im Kapitel** mit Trefferzahl und Sprung zwischen den Fundstellen.
-- **Scrollposition** wird je Kapitel gemerkt; Blättern über die Punkte am Fuß oder mit `Alt` + Pfeiltasten.
+- **Suche im Gespräch** mit Trefferzahl und Sprung zwischen den Fundstellen.
+- **Scrollposition** wird je Gespräch gemerkt; Blättern über die Punkte am Fuß oder mit `Alt` + Pfeiltasten.
 
 ### Freigaben
 
@@ -97,7 +95,7 @@ Technisch ist Aesmyra eine Tauri-2-Anwendung: ein Rust-Kern für Netzwerk, Verla
 
 ## Bauen
 
-> Dieses Repository enthält derzeit die Projektbeschreibung. Quelltext und erste Builds folgen; die folgenden Schritte beschreiben den vorgesehenen Weg.
+> Der Quelltext liegt vollständig im Repository. Die folgenden Schritte beschreiben den Bau auf der jeweiligen Plattform.
 
 <details>
 <summary>Linux</summary>
@@ -108,7 +106,7 @@ Benötigt: Rust (stable), Node.js ab 18, WebKitGTK 4.1, GTK 3, librsvg und libay
 git clone https://github.com/Feisty-38/Aesmyra..git aesmyra
 cd aesmyra
 npm install
-cd crates/blatt-app
+cd crates/aesmyra-app
 ../../node_modules/.bin/tauri build
 ```
 
@@ -123,11 +121,11 @@ Benötigt: Visual Studio 2022 Build Tools mit „Desktop development with C++“
 
 ```powershell
 npm install
-cd crates\blatt-app
+cd crates\aesmyra-app
 ..\..\node_modules\.bin\tauri build --bundles "msi,nsis" --ci
 ```
 
-Ohne `--bundles` würde die CLI die Linux-Ziele aus der Konfiguration bauen wollen. Der CI-Weg steht in `.github/workflows/build.yml`: Actions → **Windows-Build** → Artefakt `blatt-windows-x64`.
+Ohne `--bundles` würde die CLI die Linux-Ziele aus der Konfiguration bauen wollen. Der CI-Weg steht in `.github/workflows/build.yml`: Actions → **Windows-Build** → Artefakt `aesmyra-windows-x64`.
 
 </details>
 
@@ -141,7 +139,7 @@ npx tauri android init          # einmalig
 npx tauri android build --debug --apk
 ```
 
-Auf Android liegt die Konfiguration unter `/data/user/0/dev.grace.blatt/config.json` — nicht unter `files/`. Der Pfad wird beim Start gesetzt, bevor die Konfiguration geladen wird.
+Auf Android liegt die Konfiguration unter `/data/user/0/dev.grace.aesmyra/config.json` — nicht unter `files/`. Der Pfad wird beim Start gesetzt, bevor die Konfiguration geladen wird.
 
 </details>
 
@@ -153,11 +151,11 @@ Auf Android liegt die Konfiguration unter `/data/user/0/dev.grace.blatt/config.j
 +---------------+---------------+
                 | invoke / Channel (Tauri-IPC)
 +---------------v---------------+
-| crates/blatt-app              |  Befehle, Laufverwaltung, Freigaben
+| crates/aesmyra-app            |  Befehle, Laufverwaltung, Freigaben
 +---------------+---------------+
                 |
 +---------------v---------------+
-| crates/blatt-core             |  HTTP, SSE, Verlauf, Konfiguration
+| crates/aesmyra-core           |  HTTP, SSE, Verlauf, Konfiguration
 +---------------+---------------+
                 | HTTP + SSE
 +---------------v---------------+
@@ -167,9 +165,9 @@ Auf Android liegt die Konfiguration unter `/data/user/0/dev.grace.blatt/config.j
 
 | Pfad | Inhalt |
 | --- | --- |
-| `crates/blatt-core` | Hermes-API, Ereignisstrom, Verlaufsaufbereitung, Konfiguration |
-| `crates/blatt-app` | Tauri-Befehle, Laufverwaltung, Fenster, Plattform-Anpassungen |
-| `ui/` | `index.html`, `blatt.css`, `app.js` — reines ES2020 |
+| `crates/aesmyra-core` | Hermes-API, Ereignisstrom, Verlaufsaufbereitung, Konfiguration |
+| `crates/aesmyra-app` | Tauri-Befehle, Laufverwaltung, Fenster, Plattform-Anpassungen |
+| `ui/` | `index.html`, `aesmyra.css`, `app.js` — reines ES2020 |
 | `.github/workflows/build.yml` | Windows-Build für MSI und NSIS |
 
 Die Oberfläche kennt 14 Befehle (`settings_get`, `sessions_list`, `chat_start`, `run_approve` und weitere) und bekommt den Lauf über einen Kanal als Ereignisstrom: `delta`, `commentary`, `tool_started`, `tool_finished`, `approval`, `completed`, `failed`, `cancelled`, `reconnecting`, `recovered`, `finished`.
@@ -186,17 +184,17 @@ Die Oberfläche kennt 14 Befehle (`settings_get`, `sessions_list`, `chat_start`,
 
 | Taste | Wirkung |
 | --- | --- |
-| `Esc` | Suche, Einrichtung oder Aktionsblatt schließen |
+| `Esc` | Suche, Einrichtung oder Aktionsmenü schließen |
 | `Strg` + `,` | Einrichtung öffnen |
-| `Strg` + `K` | Verzeichnis anzeigen |
-| `Alt` + `←` / `→` | voriges / nächstes Kapitel |
+| `Strg` + `K` | Übersicht anzeigen |
+| `Alt` + `←` / `→` | voriges / nächstes Gespräch |
 
 ## Bekannte Grenzen
 
 - Die Oberfläche ist nur auf Deutsch.
 - Kein Auto-Updater, keine Signatur, keine automatischen Releases.
-- Sehr lange Kapitel werden vollständig geladen; eine schrittweise Nachladung gibt es noch nicht.
-- Die Kapitelnummerierung richtet sich nach der Liste der Sitzungen und verschiebt sich, wenn neue Sitzungen dazukommen.
+- Sehr lange Gespräche werden vollständig geladen; eine schrittweise Nachladung gibt es noch nicht.
+- Die Nummerierung richtet sich nach der Liste der Sitzungen und verschiebt sich, wenn neue Sitzungen dazukommen.
 
 ## Mitmachen
 

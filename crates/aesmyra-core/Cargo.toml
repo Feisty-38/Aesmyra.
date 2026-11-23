@@ -1,0 +1,16 @@
+[package]
+name = "aesmyra-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kern von Aesmyra.: Hermes-API, Ereignisstrom, Verlaufsaufbereitung"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+futures-util.workspace = true
+thiserror.workspace = true
+dirs.workspace = true
+url.workspace = true

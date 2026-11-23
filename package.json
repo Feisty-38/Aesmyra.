@@ -1,8 +1,8 @@
 {
-  "name": "grace-blatt-rs",
+  "name": "aesmyra",
   "version": "1.0.0",
   "private": true,
-  "description": "Blatt — Hermes-Client",
+  "description": "Aesmyra. — Hermes-Client",
   "scripts": {
     "tauri": "tauri"
   },

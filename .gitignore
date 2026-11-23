@@ -7,10 +7,10 @@
 /node_modules/
 
 # Tauri / Android (erzeugt)
-crates/blatt-app/gen/android/app/build/
-crates/blatt-app/gen/android/build/
-crates/blatt-app/gen/android/.gradle/
-crates/blatt-app/gen/android/local.properties
+crates/aesmyra-app/gen/android/app/build/
+crates/aesmyra-app/gen/android/build/
+crates/aesmyra-app/gen/android/.gradle/
+crates/aesmyra-app/gen/android/local.properties
 
 # System
 .DS_Store
@@ -19,7 +19,7 @@ crates/blatt-app/gen/android/local.properties
 # Weitere Baupfade
 /target-win/
 /target-verify/
-crates/blatt-app/gen/android/app/src/main/jniLibs/
+crates/aesmyra-app/gen/android/app/src/main/jniLibs/
 *.apk
 *.aab
 *.keystore

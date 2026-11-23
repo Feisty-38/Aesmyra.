@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#08070b">
-<title>Blatt</title>
-<link rel="stylesheet" href="blatt.css">
+<title>Aesmyra.</title>
+<link rel="stylesheet" href="aesmyra.css">
 </head>
 <body class="boot" data-platform="pc" data-view="index">
 
@@ -17,7 +17,7 @@
 
 <div class="view" id="view-index">
   <header class="idx-head">
-    <span class="wordmark">Blatt</span>
+    <span class="wordmark">Aesmyra.</span>
     <button class="avatar" id="avatar" aria-label="Verbindung und Einrichtung">
       <i class="ico-person"></i>
     </button>
@@ -25,13 +25,13 @@
 
   <div class="idx-body">
     <div class="idx-sub">
-      <span>Inhalt</span>
-      <span id="pageNo">S. 000</span>
+      <span>Gespräche</span>
+      <span id="pageNo">Nr. 000</span>
     </div>
 
     <button class="newrow" id="idxNew">
       <span class="nr">00</span>
-      <span class="tt">Neues Kapitel verfassen</span>
+      <span class="tt">Neues Gespräch beginnen</span>
       <i class="ico-add"></i>
     </button>
 
@@ -39,25 +39,26 @@
 
     <div class="idx-end">
       <span class="rule"></span>
-      <span>Ende des Verzeichnisses</span>
+      <span>Ende der Übersicht</span>
     </div>
   </div>
 </div>
 
-<!-- ═══ Leseseite ═════════════════════════════════════════════════ -->
+<!-- ═══ Gesprächsansicht ═════════════════════════════════════════════════ -->
 
 <div class="view" id="view-reading">
   <header class="bar">
-    <span class="kep" id="kep">Blatt</span>
+    <span class="wordmark">Aesmyra.</span>
+    <span class="crumb" id="kep"></span>
     <span class="spacer"></span>
-    <button class="ico" id="findBtn" aria-label="Im Kapitel suchen">
+    <button class="ico" id="findBtn" aria-label="Im Gespräch suchen">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
     </button>
   </header>
 
   <div class="findbar" id="findbar">
     <div class="in">
-      <input id="findInput" placeholder="Im Kapitel suchen" autocomplete="off">
+      <input id="findInput" placeholder="Im Gespräch suchen" autocomplete="off">
       <span class="count" id="findCount">0</span>
       <button class="ico" id="findClose" aria-label="Schließen">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -67,11 +68,11 @@
 
   <main class="page" id="page"></main>
 
-  <footer class="folio">
+  <footer class="composer">
     <div class="inner">
       <form id="composer">
         <div class="field">
-          <textarea id="input" rows="1" placeholder="Schreib an den Rand …" enterkeyhint="send"></textarea>
+          <textarea id="input" rows="1" placeholder="Nachricht schreiben …" enterkeyhint="send"></textarea>
           <button type="submit" class="fbtn send" id="sendBtn" aria-label="Senden" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
           </button>
@@ -90,7 +91,7 @@
 
 <div class="view" id="view-approvals">
   <header class="idx-head">
-    <span class="wordmark">Blatt</span>
+    <span class="wordmark">Aesmyra.</span>
     <span class="crumb">Freigaben</span>
   </header>
   <div class="idx-body">
@@ -107,7 +108,7 @@
 
 <div class="view setup" id="view-setup">
   <header class="idx-head">
-    <span class="wordmark">Blatt</span>
+    <span class="wordmark">Aesmyra.</span>
     <span class="crumb">Einrichtung</span>
     <span class="spacer"></span>
     <button class="ico" id="setupClose" aria-label="Schließen">
@@ -134,7 +135,7 @@
   </div>
 </div>
 
-<!-- ═══ Blatt-Aktionen ════════════════════════════════════════════ -->
+<!-- ═══ Aktionen ════════════════════════════════════════════ -->
 
 <div class="sheet" id="sheet">
   <div class="sheet-in">

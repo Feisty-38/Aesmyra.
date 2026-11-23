@@ -9,6 +9,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "aesmyra-app"
+version = "0.1.0"
+dependencies = [
+ "aesmyra-core",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tokio",
+]
+
+[[package]]
+name = "aesmyra-core"
+version = "0.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "futures-util",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -143,32 +169,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 dependencies = [
  "serde_core",
-]
-
-[[package]]
-name = "blatt-app"
-version = "0.1.0"
-dependencies = [
- "blatt-core",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tokio",
-]
-
-[[package]]
-name = "blatt-core"
-version = "0.1.0"
-dependencies = [
- "dirs 6.0.0",
- "futures-util",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "url",
 ]
 
 [[package]]

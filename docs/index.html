@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aesmyra — Hermes-Client für Windows, Linux und Android</title>
-<meta name="description" content="Aesmyra zeigt Hermes-Sitzungen als Kapitel: römisch nummeriert, mit Randnotizen für Werkzeuge, Denknotizen und Freigaben. Alpha, noch nicht veröffentlicht.">
+<title>Aesmyra. — Hermes-Client für Windows, Linux und Android</title>
+<meta name="description" content="Aesmyra. zeigt Hermes-Gespräche in einer fortlaufenden Übersicht: römisch nummeriert, mit Notizen für Werkzeuge, Denkschritte und Freigaben. Alpha, noch nicht veröffentlicht.">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#08070b">
-<meta property="og:title" content="Aesmyra — Ein Blatt für deine Gespräche">
-<meta property="og:description" content="Hermes-Sitzungen als Kapitel, Werkzeugaufrufe als Randnotizen. Alpha, noch nicht veröffentlicht.">
+<meta property="og:title" content="Aesmyra. — Hermes-Client für Windows, Linux und Android">
+<meta property="og:description" content="Hermes-Gespräche in einer Übersicht, Werkzeugaufrufe als Notizen. Alpha, noch nicht veröffentlicht.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="assets/pc.webp">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2308070b'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a78bfa'/%3E%3C/svg%3E">
@@ -231,7 +231,7 @@ h2{
 }
 .row p{margin-top:8px;max-width:56ch;color:var(--muted);font-size:.98em}
 
-/* Leseseite: Text und Gerät */
+/* Gesprächsansicht: Text und Gerät */
 .show{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.72fr);
   gap:clamp(36px,6vw,90px);align-items:center;
@@ -385,8 +385,8 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
     <div class="wrap hero-in">
       <div class="hero-copy">
         <p class="kicker">Hermes-Client · Windows · Linux · Android</p>
-        <h1>Ein <em>Blatt</em> für deine Gespräche.</h1>
-        <p class="lead">Aesmyra zeigt Hermes-Sitzungen als Kapitel: römisch nummeriert, mit Randnotizen für Werkzeuge, Denknotizen und Freigaben. Klar zu lesen, leicht zu finden.</p>
+        <h1>Deine Gespräche, <em>fortlaufend</em>.</h1>
+        <p class="lead">Aesmyra. zeigt Hermes-Gespräche in einer fortlaufenden Übersicht: römisch nummeriert, mit Notizen für Werkzeuge, Denkschritte und Freigaben. Klar zu lesen, leicht zu finden.</p>
         <div class="status">
           <span class="pill">Alpha</span>
           <span>Noch nicht veröffentlicht</span>
@@ -399,11 +399,11 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
 
       <figure class="stage">
         <div class="frame">
-          <div class="chrome"><i></i><i></i><i></i><span>Aesmyra · Verzeichnis</span></div>
+          <div class="chrome"><i></i><i></i><i></i><span>Aesmyra. · Übersicht</span></div>
           <img src="assets/pc.webp" width="1400" height="900" fetchpriority="high" decoding="async"
-               alt="Das Kapitelverzeichnis von Aesmyra am Rechner: sechs Leistenknöpfe und darunter Kapitel mit römischen Ziffern, Vorschau und Zeitangabe.">
+               alt="Die Übersicht von Aesmyra. am Rechner: sechs Leistenknöpfe und darunter Gespräche mit römischen Ziffern, Vorschau und Zeitangabe.">
         </div>
-        <figcaption class="caption">Verzeichnis am Rechner · jede Sitzung ein Kapitel</figcaption>
+        <figcaption class="caption">Übersicht am Rechner · jede Sitzung ein Gespräch</figcaption>
       </figure>
     </div>
   </div>
@@ -418,7 +418,7 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
       <div>
         <div class="prose">
           <p>Ein Assistent, mit dem man wirklich arbeitet, hinterlässt Dutzende Sitzungen: halb fertig, über Tage verteilt, mit Werkzeugausgaben, die man irgendwann wieder braucht. In einer Liste aus Sprechblasen findet man davon nichts wieder.</p>
-          <p>Aesmyra behandelt eine Unterhaltung deshalb wie einen Text. Jede Sitzung wird ein Kapitel mit Nummer, Titel und Vorschau. Was am Rand passiert — Werkzeuge, Denknotizen, Rückfragen — bleibt am Rand. <strong>Der Verlauf wird wieder lesbar</strong>, ohne dass man ihn umbaut.</p>
+          <p>Aesmyra. behandelt eine Unterhaltung deshalb wie einen fortlaufenden Text. Jede Sitzung wird ein Gespräch mit Nummer, Titel und Vorschau. Was nebenbei passiert — Werkzeuge, Denkschritte, Rückfragen — bleibt eine Notiz. <strong>Der Verlauf wird wieder lesbar</strong>, ohne dass man ihn umbaut.</p>
         </div>
         <p class="quote">Ein Gespräch ist kein Strom aus Blasen. Es ist ein Text, den man wiederfinden möchte.<span>Leitsatz</span></p>
       </div>
@@ -437,38 +437,38 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
         <article class="row">
           <div class="row-num">I</div>
           <div>
-            <h3>Kapitel mit Nummer und Seite</h3>
-            <p>Jede Sitzung bekommt eine römische Ziffer, einen Titel, eine Vorschau und eine Seitenzahl. Angeheftete Kapitel bleiben oben; ein langer Druck oder Rechtsklick öffnet Anheften, Umbenennen, Löschen.</p>
+            <h3>Gespräche mit Nummer und Platz</h3>
+            <p>Jede Sitzung bekommt eine römische Ziffer, einen Titel, eine Vorschau und eine laufende Nummer. Angeheftete Gespräche bleiben oben; ein langer Druck oder Rechtsklick öffnet Anheften, Umbenennen, Löschen.</p>
           </div>
         </article>
         <article class="row">
           <div class="row-num">II</div>
           <div>
-            <h3>Randnotizen statt Textwüste</h3>
-            <p>Werkzeugaufrufe stehen als schmale Zeile am Rand, aufklappbar bis zur vollständigen Ausgabe. Denknotizen erscheinen kursiv und abgesetzt — sichtbar, aber leise.</p>
+            <h3>Notizen statt Textwüste</h3>
+            <p>Werkzeugaufrufe stehen als schmale Zeile neben dem Text, aufklappbar bis zur vollständigen Ausgabe. Denknotizen erscheinen kursiv und abgesetzt — sichtbar, aber leise.</p>
           </div>
         </article>
         <article class="row">
           <div class="row-num">III</div>
           <div>
             <h3>Freigaben dort, wo sie hingehören</h3>
-            <p>Fragt ein Werkzeug um Erlaubnis, steht die Frage im Kapitel selbst: einmal, diese Sitzung, immer oder ablehnen. Die Antwort geht an den laufenden Auftrag zurück.</p>
+            <p>Fragt ein Werkzeug um Erlaubnis, steht die Frage im Gespräch selbst: einmal, diese Sitzung, immer oder ablehnen. Die Antwort geht an den laufenden Auftrag zurück.</p>
           </div>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- Leseseite -->
+  <!-- Gesprächsansicht -->
   <section>
     <div class="wrap show">
       <div>
-        <p class="kicker">III · Die Leseseite</p>
+        <p class="kicker">III · Die Gesprächsansicht</p>
         <h2>Alles im Blick, nichts im Weg.</h2>
-        <p class="prose">Markdown, Fußnoten, Suche im Kapitel und die Scrollposition je Kapitel. Die Statuszeile sagt, was gerade passiert; der Text bleibt lesbar, auch wenn im Hintergrund ein Werkzeug läuft.</p>
+        <p class="prose">Markdown, Fußnoten, Suche im Gespräch und die Scrollposition je Gespräch. Die Statuszeile sagt, was gerade passiert; der Text bleibt lesbar, auch wenn im Hintergrund ein Werkzeug läuft.</p>
         <dl class="notes">
           <div class="note">
-            <dt>Randnotiz</dt>
+            <dt>Notiz</dt>
             <dd>Werkzeugname und Kurzfassung der Argumente, aufklappbar bis zur vollen Ausgabe.</dd>
           </div>
           <div class="note">
@@ -483,7 +483,7 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
       </div>
       <figure class="device">
         <img src="assets/leseseite.webp" width="640" height="1387" loading="lazy" decoding="async"
-             alt="Leseseite auf dem Telefon: ein Kapitel mit Randnotizen zu Werkzeugaufrufen und dem Status laufend.">
+             alt="Gesprächsansicht auf dem Telefon: ein Gespräch mit Notizen zu Werkzeugaufrufen und dem Status laufend.">
       </figure>
     </div>
   </section>
@@ -493,25 +493,25 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
     <div class="wrap">
       <div class="sec-head">
         <p class="kicker">IV · Auf jedem Gerät</p>
-        <h2>Dieselbe Seite, vom Telefon bis zum Rechner.</h2>
+        <h2>Dasselbe Bild, vom Telefon bis zum Rechner.</h2>
       </div>
-      <p class="prose">Ein Fenster, das von 360 Pixel bis 4K mitgeht. Dieselben Kapitel, dieselbe Typografie, dieselben Tastenkürzel — unter Windows, Linux und auf Android.</p>
+      <p class="prose">Ein Fenster, das von 360 Pixel bis 4K mitgeht. Dieselben Gespräche, dieselbe Typografie, dieselben Tastenkürzel — unter Windows, Linux und auf Android.</p>
       <p class="devices-hint">Seitlich wischen</p>
 
       <div class="devices">
         <figure class="dev">
           <div class="device">
             <img src="assets/verzeichnis.webp" width="640" height="1387" loading="lazy" decoding="async"
-                 alt="Verzeichnis auf Android: Kapitel mit römischen Ziffern und angehefteten Einträgen.">
+                 alt="Übersicht auf Android: Gespräche mit römischen Ziffern und angehefteten Einträgen.">
           </div>
-          <figcaption class="caption">Verzeichnis</figcaption>
+          <figcaption class="caption">Übersicht</figcaption>
         </figure>
         <figure class="dev">
           <div class="device">
             <img src="assets/aktionen.webp" width="640" height="1387" loading="lazy" decoding="async"
-                 alt="Aktionsblatt eines Kapitels mit Anheften, Umbenennen und Löschen.">
+                 alt="Aktionsmenü eines Gesprächs mit Anheften, Umbenennen und Löschen.">
           </div>
-          <figcaption class="caption">Kapitel-Aktionen</figcaption>
+          <figcaption class="caption">Gesprächs-Aktionen</figcaption>
         </figure>
         <figure class="dev">
           <div class="device">
@@ -538,8 +538,8 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
           <div>
             <h3>Steht schon</h3>
             <ul>
-              <li>Kapitelverzeichnis mit Anheften und Umbenennen</li>
-              <li>Leseseite mit Markdown, Randnotizen und Suche</li>
+              <li>Übersicht mit Anheften und Umbenennen</li>
+              <li>Gesprächsansicht mit Markdown, Notizen und Suche</li>
               <li>Freigaben aus dem laufenden Auftrag</li>
               <li>Einrichtung für Server und Schlüssel</li>
               <li>Linux, Windows und Android</li>
@@ -548,7 +548,7 @@ footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
           <div>
             <h3>Kommt noch</h3>
             <ul class="muted">
-              <li>Umbenennung von Blatt auf Aesmyra</li>
+              <li>Feinschliff an der Oberfläche</li>
               <li>Signierte Installer</li>
               <li>Automatische Updates</li>
               <li>Englische Oberfläche</li>
