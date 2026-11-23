@@ -6,6 +6,8 @@
 ![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux%20%7C%20Android-blueviolet)
 ![Lizenz](https://img.shields.io/badge/Lizenz-MIT-blue)
 
+[Projektseite](https://feisty-38.github.io/Aesmyra./) · [Repository](https://github.com/Feisty-38/Aesmyra.)
+
 > ## Alpha — es gibt noch keine stabilen Releases
 >
 > Aesmyra steckt in einer frühen Phase. **Jeder Build, den du heute bekommst, ist ein Alpha-Build.** Das heißt konkret:
