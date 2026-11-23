@@ -22,7 +22,7 @@
 
 ## Was ist Aesmyra?
 
-Aesmyra ist eine eigenständige Oberfläche für [Hermes Agent](https://hermes-agent.nousresearch.com/docs). Statt eines endlosen Chatfensters zeigt Aesmyra ein Blatt: Jede Sitzung wird ein Kapitel, römisch nummeriert, mit Vorschau und Zeitangabe. Werkzeugaufrufe erscheinen als schmale Randnotizen, Denknotizen als kursive Einschübe, Freigaben als Kasten mitten im Text. Wer lange mit einem Assistenten arbeitet, soll den Faden behalten — nicht in einer Liste aus Sprechblasen suchen.
+Aesmyra ist eine eigenständige Oberfläche für [Hermes Agent](https://hermes-agent.nousresearch.com/). Statt eines endlosen Chatfensters zeigt Aesmyra ein Blatt: Jede Sitzung wird ein Kapitel, römisch nummeriert, mit Vorschau und Zeitangabe. Werkzeugaufrufe erscheinen als schmale Randnotizen, Denknotizen als kursive Einschübe, Freigaben als Kasten mitten im Text. Wer lange mit einem Assistenten arbeitet, soll den Faden behalten — nicht in einer Liste aus Sprechblasen suchen.
 
 Der Client spricht ausschließlich mit dem Hermes-API-Server auf dem eigenen Rechner oder im eigenen Netz (Standard `http://127.0.0.1:8642`), per HTTP und SSE. Kein Cloud-Dienst dazwischen, keine Konten, keine Telemetrie.
 
