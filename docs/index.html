@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aesmyra — Hermes-Client für Windows, Linux und Android</title>
+<meta name="description" content="Aesmyra zeigt Hermes-Sitzungen als Kapitel: römisch nummeriert, mit Randnotizen für Werkzeuge, Denknotizen und Freigaben. Alpha, noch nicht veröffentlicht.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08070b">
+<meta property="og:title" content="Aesmyra — Ein Blatt für deine Gespräche">
+<meta property="og:description" content="Hermes-Sitzungen als Kapitel, Werkzeugaufrufe als Randnotizen. Alpha, noch nicht veröffentlicht.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/pc.webp">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2308070b'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a78bfa'/%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{
+  font-family:"Newsreader";
+  src:url("assets/fonts/newsreader-latin.woff2") format("woff2");
+  font-weight:200 700;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:"JB Mono";
+  src:url("assets/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  font-weight:400 700;font-style:normal;font-display:swap;
+}
+
+:root{
+  --ink:#08070b;
+  --panel:#0d0b12;
+  --paper:#ece7f4;
+  --body:#cfc8db;
+  --muted:#a49cb8;
+  --dim:#7e7690;
+  --acc:#a78bfa;
+  --acc-deep:#7c5cf5;
+  --rule:rgba(255,255,255,.08);
+  --rule2:rgba(255,255,255,.14);
+  --serif:"Newsreader","Iowan Old Style",Palatino,Georgia,serif;
+  --mono:"JB Mono",ui-monospace,SFMono-Regular,monospace;
+  --wrap:min(1180px,100% - clamp(40px,9vw,120px));
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(900px 620px at 92% -12%,rgba(124,92,245,.14),transparent 68%),
+    radial-gradient(700px 520px at -8% 18%,rgba(167,139,250,.06),transparent 70%),
+    var(--ink);
+  color:var(--body);
+  font-family:var(--serif);
+  font-size:clamp(17px,.3vw + 16px,19px);
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+img{display:block;max-width:100%;height:auto}
+a{color:var(--acc);text-decoration:none}
+a:hover{color:#c9b8ff}
+:focus-visible{outline:2px solid var(--acc);outline-offset:4px;border-radius:2px}
+::selection{background:rgba(167,139,250,.3);color:#fff}
+
+.skip{
+  position:absolute;left:-9999px;top:0;z-index:100;
+  background:var(--acc);color:#120c22;padding:12px 18px;
+  font-family:var(--mono);font-size:12px;
+}
+.skip:focus{left:12px;top:12px}
+
+.wrap{width:var(--wrap);margin-inline:auto}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+
+/* ── Kopf ─────────────────────────────────────────── */
+.hdr{
+  position:sticky;top:0;z-index:40;
+  background:rgba(8,7,11,.72);
+  backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid var(--rule);
+}
+.hdr-in{
+  width:var(--wrap);margin-inline:auto;
+  display:flex;align-items:center;gap:clamp(18px,4vw,44px);
+  min-height:64px;
+}
+.brand{
+  font-family:var(--serif);font-size:22px;color:var(--paper);
+  letter-spacing:-.01em;white-space:nowrap;
+}
+.brand i{font-style:normal;color:var(--acc)}
+.nav{display:flex;gap:clamp(14px,2.4vw,30px);margin-left:auto}
+.nav a{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);padding:6px 0;
+}
+.nav a:hover{color:var(--paper)}
+.gh{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--paper);border:1px solid var(--rule2);border-radius:3px;
+  padding:9px 14px;min-height:38px;transition:border-color .25s,background .25s;
+}
+.gh:hover{border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.08);color:#fff}
+.gh svg{width:13px;height:13px}
+
+/* ── Auftakt ──────────────────────────────────────── */
+.hero{padding:clamp(48px,7vw,96px) 0 clamp(56px,7vw,100px)}
+.hero-in{
+  display:grid;gap:clamp(36px,5vw,64px);
+  grid-template-columns:minmax(0,1.02fr) minmax(0,1.18fr);
+  align-items:center;
+}
+.kicker{
+  display:flex;align-items:center;gap:12px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:clamp(18px,2.4vw,28px);
+}
+.kicker::before{content:"";width:26px;height:1px;background:var(--acc);opacity:.8}
+h1{
+  font-family:var(--serif);font-weight:400;color:var(--paper);
+  font-size:clamp(44px,6.2vw,86px);line-height:.98;letter-spacing:-.028em;
+  text-wrap:balance;
+}
+h1 em{font-style:normal;color:var(--acc)}
+.lead{
+  margin-top:clamp(20px,2.6vw,30px);
+  font-size:clamp(18px,1.1vw + 14px,22px);line-height:1.62;
+  color:var(--body);max-width:34ch;
+}
+.status{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;
+  margin-top:clamp(26px,3vw,34px);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);
+}
+.pill{
+  display:inline-flex;align-items:center;gap:7px;
+  color:#f0d9b6;border:1px solid rgba(240,190,120,.32);
+  background:rgba(240,190,120,.07);border-radius:999px;
+  padding:5px 11px;letter-spacing:.18em;
+}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:#e8b36a}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:clamp(24px,3vw,32px)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:46px;padding:0 20px;border-radius:3px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  transition:transform .2s var(--ease),background .25s,border-color .25s;
+}
+.btn:active{transform:translateY(1px)}
+.btn-solid{background:var(--acc);color:#120c22;font-weight:600}
+.btn-solid:hover{background:#bd9fff;color:#120c22}
+.btn-ghost{border:1px solid var(--rule2);color:var(--paper)}
+.btn-ghost:hover{border-color:rgba(167,139,250,.55);background:rgba(167,139,250,.07);color:#fff}
+
+/* ── Fensterrahmen ────────────────────────────────── */
+.stage{position:relative}
+.stage::before{
+  content:"";position:absolute;inset:-8% -6% -14% -6%;z-index:0;
+  background:radial-gradient(60% 55% at 60% 40%,rgba(124,92,245,.28),transparent 72%);
+  filter:blur(30px);pointer-events:none;
+}
+.frame{
+  position:relative;z-index:1;
+  background:#0b0910;border:1px solid var(--rule2);border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 30px 90px -30px rgba(0,0,0,.9),0 0 0 1px rgba(0,0,0,.4);
+}
+.chrome{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 13px;border-bottom:1px solid var(--rule);
+  background:linear-gradient(180deg,rgba(255,255,255,.035),transparent);
+}
+.chrome i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.14)}
+.chrome span{
+  margin-left:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--dim);
+}
+.frame img{width:100%;height:auto}
+.caption{
+  margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);
+}
+
+/* ── Abschnitte ───────────────────────────────────── */
+section{padding:clamp(64px,9vw,118px) 0}
+.sec-head{max-width:min(100%,660px)}
+h2{
+  font-family:var(--serif);font-weight:400;color:var(--paper);
+  font-size:clamp(30px,3.9vw,52px);line-height:1.06;letter-spacing:-.02em;
+  text-wrap:balance;margin-top:14px;
+}
+.prose{max-width:62ch;margin-top:clamp(20px,2.6vw,30px)}
+.prose p + p{margin-top:1em}
+.prose strong{color:var(--paper);font-weight:500}
+
+/* Konzept */
+.concept{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+  gap:clamp(28px,5vw,80px);align-items:start;
+}
+.quote{
+  border-top:1px solid var(--rule);margin-top:clamp(32px,4vw,52px);
+  padding-top:clamp(22px,3vw,30px);
+  font-size:clamp(21px,1.6vw + 15px,30px);line-height:1.4;color:var(--paper);
+  max-width:30ch;
+}
+.quote span{
+  display:block;margin-top:14px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+}
+
+/* Reihen mit Randnummern */
+.rows{margin-top:clamp(36px,5vw,58px);border-top:1px solid var(--rule)}
+.row{
+  display:grid;grid-template-columns:minmax(64px,96px) minmax(0,1fr);
+  gap:clamp(14px,3vw,36px);
+  padding:clamp(24px,3.2vw,36px) 0;border-bottom:1px solid var(--rule);
+}
+.row-num{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--acc);
+  padding-top:.45em;
+}
+.row h3{
+  font-family:var(--serif);font-weight:400;font-size:clamp(21px,1.7vw + 14px,28px);
+  color:var(--paper);line-height:1.2;letter-spacing:-.01em;
+}
+.row p{margin-top:8px;max-width:56ch;color:var(--muted);font-size:.98em}
+
+/* Leseseite: Text und Gerät */
+.show{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.72fr);
+  gap:clamp(36px,6vw,90px);align-items:center;
+}
+.notes{margin-top:clamp(26px,3vw,36px);display:grid;gap:2px}
+.note{
+  display:grid;grid-template-columns:auto 1fr;gap:std;
+  padding:18px 0;border-top:1px solid var(--rule);
+}
+.note:last-child{border-bottom:1px solid var(--rule)}
+.note dt{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--acc);white-space:nowrap;padding-top:3px;min-width:104px;
+}
+.note dd{color:var(--muted);font-size:.98em}
+.device{
+  justify-self:center;width:100%;max-width:330px;
+  border:1px solid var(--rule2);border-radius:30px;padding:9px;
+  background:#0c0a11;
+  box-shadow:0 26px 60px -26px rgba(0,0,0,.95),0 0 60px -30px rgba(124,92,245,.55);
+}
+.device img{border-radius:22px;width:100%}
+
+/* Geräte */
+.devices{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(18px,3vw,38px);margin-top:clamp(36px,5vw,58px);
+  align-items:start;
+}
+.dev{display:grid;gap:14px;justify-items:center}
+.dev .device{max-width:290px}
+.dev:nth-child(2){transform:translateY(-26px)}
+.dev figcaption{text-align:center}
+.devices-hint{display:none}
+
+/* Stand */
+.stand{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:clamp(30px,6vw,90px);align-items:start;
+}
+.state-cols{
+  display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);
+  margin-top:clamp(30px,4vw,44px);
+}
+.state-cols h3{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--paper);font-weight:400;padding-bottom:12px;border-bottom:1px solid var(--rule2);
+}
+.state-cols ul{list-style:none;padding:0;margin-top:6px}
+.state-cols li{
+  padding:11px 0;border-bottom:1px solid var(--rule);color:var(--muted);font-size:.95em;
+}
+.state-cols li:last-child{border-bottom:0}
+.state-cols .muted li{color:var(--dim)}
+
+/* Unterbau */
+.tech{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:0}
+.tech-in{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:1px;background:var(--rule);
+}
+.t{
+  background:var(--ink);padding:clamp(20px,2.6vw,30px) clamp(12px,2vw,22px);
+}
+.t dt{
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:9px;
+}
+.t dd{color:var(--paper);font-size:clamp(15px,1vw + 12px,18px);line-height:1.35}
+
+/* Fuß */
+footer{padding:clamp(44px,6vw,72px) 0 clamp(36px,5vw,56px)}
+.foot{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 26px;
+  border-top:1px solid var(--rule);padding-top:26px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);
+}
+.foot .brand{font-family:var(--serif);font-size:18px;letter-spacing:0}
+.foot nav{display:flex;gap:20px;margin-left:auto}
+.foot a{color:var(--muted)}
+.foot a:hover{color:var(--paper)}
+
+/* ── Schmale Geräte ───────────────────────────────── */
+@media (max-width:960px){
+  .hero-in{grid-template-columns:1fr}
+  .hero-in .stage{order:2}
+  .lead{max-width:44ch}
+  .concept,.show,.stand{grid-template-columns:1fr}
+  .show .device{justify-self:start}
+  .devices{grid-template-columns:1fr;gap:34px}
+  .dev:nth-child(2){transform:none}
+  .devices{
+    display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    gap:18px;padding-bottom:12px;margin-inline:calc(-1 * clamp(20px,4.5vw,60px));
+    padding-inline:clamp(20px,4.5vw,60px);
+    scrollbar-width:thin;
+  }
+  .dev{flex:0 0 74%;max-width:300px;scroll-snap-align:center}
+  .dev .device{max-width:100%}
+  .devices-hint{
+    display:flex;align-items:center;gap:8px;margin-top:6px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+  }
+  .tech-in{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .t:last-child{grid-column:1 / -1}
+  .state-cols{grid-template-columns:1fr;gap:28px}
+  .foot nav{margin-left:0;width:100%}
+}
+@media (max-width:640px){
+  .nav{display:none}
+  .hdr-in{justify-content:space-between;min-height:58px}
+  h1{font-size:clamp(38px,10.5vw,54px)}
+  .row{grid-template-columns:1fr;gap:6px}
+  .row-num{padding-top:0}
+  .device{max-width:100%;border-radius:24px;padding:7px}
+  .device img{border-radius:18px}
+  .dev{flex:0 0 82%}
+  .caption{font-size:9px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body id="top">
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="brand" href="#top" aria-label="Aesmyra, zum Anfang">Aesmyra<i>.</i></a>
+    <nav class="nav" aria-label="Abschnitte">
+      <a href="#konzept">Konzept</a>
+      <a href="#funktionen">Funktionen</a>
+      <a href="#geraete">Geräte</a>
+      <a href="#stand">Stand</a>
+    </nav>
+    <a class="gh" href="https://github.com/Feisty-38/Aesmyra." rel="noopener">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<main id="inhalt">
+
+  <!-- Auftakt -->
+  <div class="hero">
+    <div class="wrap hero-in">
+      <div class="hero-copy">
+        <p class="kicker">Hermes-Client · Windows · Linux · Android</p>
+        <h1>Ein <em>Blatt</em> für deine Gespräche.</h1>
+        <p class="lead">Aesmyra zeigt Hermes-Sitzungen als Kapitel: römisch nummeriert, mit Randnotizen für Werkzeuge, Denknotizen und Freigaben. Klar zu lesen, leicht zu finden.</p>
+        <div class="status">
+          <span class="pill">Alpha</span>
+          <span>Noch nicht veröffentlicht</span>
+        </div>
+        <div class="cta">
+          <a class="btn btn-solid" href="https://github.com/Feisty-38/Aesmyra." rel="noopener">Auf GitHub ansehen</a>
+          <a class="btn btn-ghost" href="#funktionen">Was es kann</a>
+        </div>
+      </div>
+
+      <figure class="stage">
+        <div class="frame">
+          <div class="chrome"><i></i><i></i><i></i><span>Aesmyra · Verzeichnis</span></div>
+          <img src="assets/pc.webp" width="1400" height="900" fetchpriority="high" decoding="async"
+               alt="Das Kapitelverzeichnis von Aesmyra am Rechner: sechs Leistenknöpfe und darunter Kapitel mit römischen Ziffern, Vorschau und Zeitangabe.">
+        </div>
+        <figcaption class="caption">Verzeichnis am Rechner · jede Sitzung ein Kapitel</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- Konzept -->
+  <section id="konzept">
+    <div class="wrap concept">
+      <div>
+        <p class="kicker">I · Warum</p>
+        <h2>Nach dem dritten Tag sieht jeder Verlauf gleich aus.</h2>
+      </div>
+      <div>
+        <div class="prose">
+          <p>Ein Assistent, mit dem man wirklich arbeitet, hinterlässt Dutzende Sitzungen: halb fertig, über Tage verteilt, mit Werkzeugausgaben, die man irgendwann wieder braucht. In einer Liste aus Sprechblasen findet man davon nichts wieder.</p>
+          <p>Aesmyra behandelt eine Unterhaltung deshalb wie einen Text. Jede Sitzung wird ein Kapitel mit Nummer, Titel und Vorschau. Was am Rand passiert — Werkzeuge, Denknotizen, Rückfragen — bleibt am Rand. <strong>Der Verlauf wird wieder lesbar</strong>, ohne dass man ihn umbaut.</p>
+        </div>
+        <p class="quote">Ein Gespräch ist kein Strom aus Blasen. Es ist ein Text, den man wiederfinden möchte.<span>Leitsatz</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Funktionen -->
+  <section id="funktionen">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">II · Was es anders macht</p>
+        <h2>Lesen statt scrollen.</h2>
+      </div>
+
+      <div class="rows">
+        <article class="row">
+          <div class="row-num">I</div>
+          <div>
+            <h3>Kapitel mit Nummer und Seite</h3>
+            <p>Jede Sitzung bekommt eine römische Ziffer, einen Titel, eine Vorschau und eine Seitenzahl. Angeheftete Kapitel bleiben oben; ein langer Druck oder Rechtsklick öffnet Anheften, Umbenennen, Löschen.</p>
+          </div>
+        </article>
+        <article class="row">
+          <div class="row-num">II</div>
+          <div>
+            <h3>Randnotizen statt Textwüste</h3>
+            <p>Werkzeugaufrufe stehen als schmale Zeile am Rand, aufklappbar bis zur vollständigen Ausgabe. Denknotizen erscheinen kursiv und abgesetzt — sichtbar, aber leise.</p>
+          </div>
+        </article>
+        <article class="row">
+          <div class="row-num">III</div>
+          <div>
+            <h3>Freigaben dort, wo sie hingehören</h3>
+            <p>Fragt ein Werkzeug um Erlaubnis, steht die Frage im Kapitel selbst: einmal, diese Sitzung, immer oder ablehnen. Die Antwort geht an den laufenden Auftrag zurück.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leseseite -->
+  <section>
+    <div class="wrap show">
+      <div>
+        <p class="kicker">III · Die Leseseite</p>
+        <h2>Alles im Blick, nichts im Weg.</h2>
+        <p class="prose">Markdown, Fußnoten, Suche im Kapitel und die Scrollposition je Kapitel. Die Statuszeile sagt, was gerade passiert; der Text bleibt lesbar, auch wenn im Hintergrund ein Werkzeug läuft.</p>
+        <dl class="notes">
+          <div class="note">
+            <dt>Randnotiz</dt>
+            <dd>Werkzeugname und Kurzfassung der Argumente, aufklappbar bis zur vollen Ausgabe.</dd>
+          </div>
+          <div class="note">
+            <dt>Denknotiz</dt>
+            <dd>Der Gedankengang als kursive Passage — nachlesbar, ohne den Absatz zu zerreißen.</dd>
+          </div>
+          <div class="note">
+            <dt>Freigabe</dt>
+            <dd>Die Entscheidung steht im Text, nicht in einem Dialog darüber.</dd>
+          </div>
+        </dl>
+      </div>
+      <figure class="device">
+        <img src="assets/leseseite.webp" width="640" height="1387" loading="lazy" decoding="async"
+             alt="Leseseite auf dem Telefon: ein Kapitel mit Randnotizen zu Werkzeugaufrufen und dem Status laufend.">
+      </figure>
+    </div>
+  </section>
+
+  <!-- Geräte -->
+  <section id="geraete">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">IV · Auf jedem Gerät</p>
+        <h2>Dieselbe Seite, vom Telefon bis zum Rechner.</h2>
+      </div>
+      <p class="prose">Ein Fenster, das von 360 Pixel bis 4K mitgeht. Dieselben Kapitel, dieselbe Typografie, dieselben Tastenkürzel — unter Windows, Linux und auf Android.</p>
+      <p class="devices-hint">Seitlich wischen</p>
+
+      <div class="devices">
+        <figure class="dev">
+          <div class="device">
+            <img src="assets/verzeichnis.webp" width="640" height="1387" loading="lazy" decoding="async"
+                 alt="Verzeichnis auf Android: Kapitel mit römischen Ziffern und angehefteten Einträgen.">
+          </div>
+          <figcaption class="caption">Verzeichnis</figcaption>
+        </figure>
+        <figure class="dev">
+          <div class="device">
+            <img src="assets/aktionen.webp" width="640" height="1387" loading="lazy" decoding="async"
+                 alt="Aktionsblatt eines Kapitels mit Anheften, Umbenennen und Löschen.">
+          </div>
+          <figcaption class="caption">Kapitel-Aktionen</figcaption>
+        </figure>
+        <figure class="dev">
+          <div class="device">
+            <img src="assets/setup.webp" width="640" height="1387" loading="lazy" decoding="async"
+                 alt="Einrichtung: Serveradresse und Zugangsschlüssel für den Hermes-Server.">
+          </div>
+          <figcaption class="caption">Einrichtung</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stand -->
+  <section id="stand">
+    <div class="wrap stand">
+      <div>
+        <p class="kicker">V · Stand</p>
+        <h2>Noch nicht veröffentlicht.</h2>
+        <p class="prose">Aesmyra ist in der Alpha. Es gibt keine Releases, keine Installer und keine Versionsnummer zum Herunterladen — dafür einen Stand, der sich jeden Tag bewegt. Wer jetzt schon hineinsehen will, findet ihn im Repository.</p>
+        <p class="status"><span class="pill">Alpha</span><span>Version 0.1.0 · in Arbeit</span></p>
+      </div>
+      <div>
+        <div class="state-cols">
+          <div>
+            <h3>Steht schon</h3>
+            <ul>
+              <li>Kapitelverzeichnis mit Anheften und Umbenennen</li>
+              <li>Leseseite mit Markdown, Randnotizen und Suche</li>
+              <li>Freigaben aus dem laufenden Auftrag</li>
+              <li>Einrichtung für Server und Schlüssel</li>
+              <li>Linux, Windows und Android</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Kommt noch</h3>
+            <ul class="muted">
+              <li>Umbenennung von Blatt auf Aesmyra</li>
+              <li>Signierte Installer</li>
+              <li>Automatische Updates</li>
+              <li>Englische Oberfläche</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Unterbau -->
+  <section class="tech">
+    <div class="wrap tech-in">
+      <div class="t"><dt>Kern</dt><dd>Rust</dd></div>
+      <div class="t"><dt>Fenster</dt><dd>Tauri&nbsp;2</dd></div>
+      <div class="t"><dt>Oberfläche</dt><dd>ES2020, ohne Bundler</dd></div>
+      <div class="t"><dt>Daten</dt><dd>nur dein Server</dd></div>
+      <div class="t"><dt>Lizenz</dt><dd>MIT</dd></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <a class="brand" href="#top">Aesmyra<i>.</i></a>
+      <span>Freie Software unter MIT</span>
+      <nav aria-label="Verweise">
+        <a href="https://github.com/Feisty-38/Aesmyra." rel="noopener">Repository</a>
+        <a href="https://github.com/Feisty-38/Aesmyra./issues" rel="noopener">Fehler melden</a>
+      </nav>
+      <span>© 2026</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

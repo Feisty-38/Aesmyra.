@@ -1,6 +1,6 @@
 # Aesmyra
 
-**Ein ruhiger Client für Hermes Agent — für Windows, Linux und Android.**
+**Hermes-Sitzungen als Kapitel — für Windows, Linux und Android.**
 
 ![Status](https://img.shields.io/badge/Status-Alpha-orange)
 ![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux%20%7C%20Android-blueviolet)
