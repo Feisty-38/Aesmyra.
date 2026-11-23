@@ -30,13 +30,15 @@ Technisch ist Aesmyra eine Tauri-2-Anwendung: ein Rust-Kern für Netzwerk, Verla
 
 ## Bilder
 
-| Verzeichnis am Rechner | Verzeichnis auf Android |
-| --- | --- |
-| ![Kapitelverzeichnis am Rechner](docs/bilder/pc-verzeichnis.png) | ![Kapitelverzeichnis auf Android](docs/bilder/mobil-verzeichnis.png) |
+![Kapitelverzeichnis am Rechner](docs/bilder/pc-verzeichnis.png)
 
-| Leseseite | Kapitel-Aktionen | Einrichtung |
-| --- | --- | --- |
-| ![Leseseite mit Randnotizen](docs/bilder/mobil-leseseite.png) | ![Aktionsblatt eines Kapitels](docs/bilder/mobil-aktionen.png) | ![Einrichtung von Server und Schlüssel](docs/bilder/mobil-einrichtung.png) |
+| Verzeichnis auf Android | Leseseite |
+| --- | --- |
+| ![Kapitelverzeichnis auf Android](docs/bilder/mobil-verzeichnis.png) | ![Leseseite mit Randnotizen](docs/bilder/mobil-leseseite.png) |
+
+| Kapitel-Aktionen | Einrichtung |
+| --- | --- |
+| ![Aktionsblatt eines Kapitels](docs/bilder/mobil-aktionen.png) | ![Einrichtung von Server und Schlüssel](docs/bilder/mobil-einrichtung.png) |
 
 ## Funktionen
 
