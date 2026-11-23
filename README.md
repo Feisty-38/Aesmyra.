@@ -208,6 +208,6 @@ MIT — siehe [LICENSE](LICENSE).
 
 ## Danksagung
 
-- [Hermes Agent](https://hermes-agent.nousresearch.com/docs) von Nous Research für API und Ereignisprotokoll
+- [Hermes Agent](https://hermes-agent.nousresearch.com/) von Nous Research für API und Ereignisprotokoll
 - [Tauri](https://tauri.app) für das Fenster und die Bindung zwischen Rust und Oberfläche
 - Die Schriften **Newsreader** und **JetBrains Mono** unter der SIL Open Font License
