@@ -1,0 +1,17 @@
+# Rust
+/target/
+/target-android/
+**/*.rs.bk
+
+# Node
+/node_modules/
+
+# Tauri / Android (erzeugt)
+crates/blatt-app/gen/android/app/build/
+crates/blatt-app/gen/android/build/
+crates/blatt-app/gen/android/.gradle/
+crates/blatt-app/gen/android/local.properties
+
+# System
+.DS_Store
+*.log
