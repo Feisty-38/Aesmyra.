@@ -15,3 +15,16 @@ crates/blatt-app/gen/android/local.properties
 # System
 .DS_Store
 *.log
+
+# Weitere Baupfade
+/target-win/
+/target-verify/
+crates/blatt-app/gen/android/app/src/main/jniLibs/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Arbeitsaufträge dieser Maschine
+AUFTRAG-*.md
+scripts/check-reading.sh

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#08070b">
+<title>Blatt</title>
+<link rel="stylesheet" href="blatt.css">
+</head>
+<body class="boot" data-platform="pc" data-view="index">
+
+<div class="bloom"><i class="top"></i><i class="rgt"></i><i class="bot"></i><i class="lft"></i></div>
+<div class="edge"><i class="top"></i><i class="rgt"></i><i class="bot"></i><i class="lft"></i></div>
+
+<!-- ═══ Verzeichnis ═══════════════════════════════════════════════ -->
+
+<div class="view" id="view-index">
+  <header class="idx-head">
+    <span class="wordmark">Blatt</span>
+    <button class="avatar" id="avatar" aria-label="Verbindung und Einrichtung">
+      <i class="ico-person"></i>
+    </button>
+  </header>
+
+  <div class="idx-body">
+    <div class="idx-sub">
+      <span>Inhalt</span>
+      <span id="pageNo">S. 000</span>
+    </div>
+
+    <button class="newrow" id="idxNew">
+      <span class="nr">00</span>
+      <span class="tt">Neues Kapitel verfassen</span>
+      <i class="ico-add"></i>
+    </button>
+
+    <div id="idxList"></div>
+
+    <div class="idx-end">
+      <span class="rule"></span>
+      <span>Ende des Verzeichnisses</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Leseseite ═════════════════════════════════════════════════ -->
+
+<div class="view" id="view-reading">
+  <header class="bar">
+    <span class="kep" id="kep">Blatt</span>
+    <span class="spacer"></span>
+    <button class="ico" id="findBtn" aria-label="Im Kapitel suchen">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+    </button>
+  </header>
+
+  <div class="findbar" id="findbar">
+    <div class="in">
+      <input id="findInput" placeholder="Im Kapitel suchen" autocomplete="off">
+      <span class="count" id="findCount">0</span>
+      <button class="ico" id="findClose" aria-label="Schließen">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <main class="page" id="page"></main>
+
+  <footer class="folio">
+    <div class="inner">
+      <form id="composer">
+        <div class="field">
+          <textarea id="input" rows="1" placeholder="Schreib an den Rand …" enterkeyhint="send"></textarea>
+          <button type="submit" class="fbtn send" id="sendBtn" aria-label="Senden" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+          </button>
+        </div>
+        <div class="meta">
+          <span class="status" id="status">bereit</span>
+          <span class="dots" id="dots"></span>
+          <span id="pgnum">—</span>
+        </div>
+      </form>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══ Freigaben ═════════════════════════════════════════════════ -->
+
+<div class="view" id="view-approvals">
+  <header class="idx-head">
+    <span class="wordmark">Blatt</span>
+    <span class="crumb">Freigaben</span>
+  </header>
+  <div class="idx-body">
+    <div class="idx-sub"><span>Offene Anfragen</span><span id="apprCount">0</span></div>
+    <div id="apprList"></div>
+    <div class="idx-end">
+      <span class="rule"></span>
+      <span id="apprFoot">Nichts zu entscheiden</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Einrichtung ═══════════════════════════════════════════════ -->
+
+<div class="view setup" id="view-setup">
+  <header class="idx-head">
+    <span class="wordmark">Blatt</span>
+    <span class="crumb">Einrichtung</span>
+    <span class="spacer"></span>
+    <button class="ico" id="setupClose" aria-label="Schließen">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <div class="idx-body">
+    <div class="field-row">
+      <label for="setServer">Server</label>
+      <input id="setServer" placeholder="http://127.0.0.1:8642" autocomplete="off" spellcheck="false">
+      <div class="hint">Der Hermes-Server auf deinem Rechner. Über Tailscale erreichbar auch von unterwegs.</div>
+    </div>
+    <div class="field-row">
+      <label for="setToken">Zugangsschlüssel</label>
+      <input id="setToken" type="password" placeholder="bleibt unverändert" autocomplete="off" spellcheck="false">
+      <div class="hint" id="setTokenHint">Wird nur im Programm gespeichert, nicht an die Oberfläche gegeben.</div>
+    </div>
+    <div class="actions">
+      <button type="button" id="setSave" class="primary">Speichern</button>
+      <button type="button" id="setTest">Prüfen</button>
+    </div>
+    <div class="state" id="setState"></div>
+    <div class="hint" id="setInfo" style="margin-top:24px"></div>
+  </div>
+</div>
+
+<!-- ═══ Blatt-Aktionen ════════════════════════════════════════════ -->
+
+<div class="sheet" id="sheet">
+  <div class="sheet-in">
+    <div class="sheet-title" id="sheetTitle"></div>
+    <button data-act="pin">Anheften</button>
+    <button data-act="rename">Umbenennen</button>
+    <button data-act="del" class="danger">Löschen</button>
+    <button data-act="close" class="plain">Abbrechen</button>
+  </div>
+</div>
+
+<nav class="shell" id="shell"></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

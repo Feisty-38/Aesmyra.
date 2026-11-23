@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Nur die Kernfunktionen: kein Dateisystem, keine Shell, kein Netzwerk aus der Oberfläche.","local":true,"windows":["main"],"permissions":["core:default"]}}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Nur die Kernfunktionen: kein Dateisystem, keine Shell, kein Netzwerk aus der Oberfläche.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
