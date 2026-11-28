@@ -6,7 +6,7 @@
 ![Plattformen](https://img.shields.io/badge/Plattformen-Windows%20%7C%20Linux%20%7C%20Android-blueviolet)
 ![Lizenz](https://img.shields.io/badge/Lizenz-MIT-blue)
 
-[Projektseite](https://feisty-38.github.io/Aesmyra./) · [Repository](https://github.com/Feisty-38/Aesmyra.)
+[Projektseite](https://feisty-38.github.io/Aesmyra/) · [Repository](https://github.com/Feisty-38/Aesmyra)
 
 > ## Alpha — es gibt noch keine stabilen Releases
 >
@@ -103,7 +103,7 @@ Technisch ist Aesmyra eine Tauri-2-Anwendung: ein Rust-Kern für Netzwerk, Verla
 Benötigt: Rust (stable), Node.js ab 18, WebKitGTK 4.1, GTK 3, librsvg und libayatana-appindicator (Paketnamen je Distribution).
 
 ```bash
-git clone https://github.com/Feisty-38/Aesmyra..git aesmyra
+git clone https://github.com/Feisty-38/Aesmyra.git aesmyra
 cd aesmyra
 npm install
 cd crates/aesmyra-app
