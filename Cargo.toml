@@ -1,6 +1,13 @@
 [workspace]
-members = ["crates/aesmyra-core", "crates/aesmyra-app"]
+members = ["crates/aesmyra-core", "crates/aesmyra-app", "crates/aesmyra-devserver", "crates/aesmyra-gpui"]
+exclude = ["vendor/xattr"]
 resolver = "2"
+
+# `xattr` 0.2.3 benutzt auf Linux `libc::ENOATTR`, das es dort nicht mehr gibt;
+# GPUI zieht es über den Zed-HTTP-Client ein. Die lokale Kopie ist bis auf die
+# Konstante unverändert.
+[patch.crates-io]
+xattr = { path = "vendor/xattr" }
 
 [workspace.package]
 version = "0.1.0"
@@ -10,12 +17,18 @@ license = "MIT"
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "net", "io-util"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 futures-util = "0.3"
 thiserror = "2"
 dirs = "6"
 url = "2"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
 
 [profile.release]
 opt-level = 3

@@ -8,13 +8,16 @@ use std::sync::{Arc, Mutex, RwLock};
 use aesmyra_core::api::UiEvent;
 use aesmyra_core::{Api, Config, Session, SettingsView, Turn};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use tauri::ipc::Channel;
 use tauri::State;
 
 pub struct AppState {
     cfg: RwLock<Config>,
     api: RwLock<Option<Arc<Api>>>,
-    run: Mutex<Option<RunHandles>>,
+    /// Ein Lauf je Gespräch: wer in einem zweiten Gespräch schreibt, während
+    /// das erste noch antwortet, darf den ersten Lauf nicht abwürgen.
+    runs: Mutex<HashMap<String, RunHandles>>,
 }
 
 /// Ein Lauf besteht aus zwei Tasks: dem Leser, der den Ereignisstrom auswertet,
@@ -36,7 +39,11 @@ impl AppState {
             cfg.server_url,
             if cfg.token.is_empty() { "fehlt" } else { "gesetzt" }
         );
-        Self { cfg: RwLock::new(cfg), api: RwLock::new(None), run: Mutex::new(None) }
+        Self {
+            cfg: RwLock::new(cfg),
+            api: RwLock::new(None),
+            runs: Mutex::new(HashMap::new()),
+        }
     }
 
     /// Verbindung wiederverwenden: ein Client mit einem Verbindungspool.
@@ -53,8 +60,16 @@ impl AppState {
         Ok(api)
     }
 
-    fn stop_run(&self) {
-        if let Some(handles) = self.run.lock().unwrap().take() {
+    /// Ohne Kennung werden alle Läufe beendet, mit Kennung nur der des
+    /// genannten Gesprächs (Halt in einem Gespräch, anderes läuft weiter).
+    fn stop_run(&self, session_id: Option<&str>) {
+        let mut map = self.runs.lock().unwrap();
+        let taken: Vec<RunHandles> = match session_id {
+            Some(sid) => map.remove(sid).into_iter().collect(),
+            None => map.drain().map(|(_, h)| h).collect(),
+        };
+        drop(map);
+        for handles in taken {
             handles.producer.abort();
             handles.sink.abort();
         }
@@ -79,7 +94,7 @@ fn settings_save(state: State<'_, AppState>, server_url: String, token: Option<S
 
 #[tauri::command]
 async fn settings_test(state: State<'_, AppState>) -> Result<String, String> {
-    state.stop_run();
+    state.stop_run(None);
     let before = state.cfg.read().unwrap().clone();
     let api = Api::new(before.server_url.clone(), before.token.clone()).map_err(|e| e.to_string())?;
     if before.token.is_empty() {
@@ -160,7 +175,9 @@ async fn chat_start(
     on_event: Channel<UiEvent>,
 ) -> Result<(), String> {
     let api = state.api()?;
-    state.stop_run();
+    /* Ein neuer Auftrag löst nur einen früheren Lauf *dieses* Gesprächs ab.
+       Andere Gespräche arbeiten weiter. */
+    state.stop_run(Some(&session_id));
 
     let (tx, mut rx) = tokio::sync::mpsc::channel::<UiEvent>(512);
     let sink_channel = on_event.clone();
@@ -172,8 +189,9 @@ async fn chat_start(
         }
     });
 
+    let run_sid = session_id.clone();
     let producer = tauri::async_runtime::spawn(async move {
-        match api.chat_stream(&session_id, &text, &tx).await {
+        match api.chat_stream(&run_sid, &text, &tx).await {
             Ok(result) => {
                 let ok = matches!(
                     result.outcome,
@@ -193,7 +211,7 @@ async fn chat_start(
         }
     });
 
-    *state.run.lock().unwrap() = Some(RunHandles { producer, sink });
+    state.runs.lock().unwrap().insert(session_id, RunHandles { producer, sink });
     Ok(())
 }
 
@@ -209,8 +227,8 @@ fn run_error_text(e: &aesmyra_core::ApiError) -> String {
 }
 
 #[tauri::command]
-fn chat_stop(state: State<'_, AppState>) -> Result<(), String> {
-    state.stop_run();
+fn chat_stop(state: State<'_, AppState>, session_id: Option<String>) -> Result<(), String> {
+    state.stop_run(session_id.as_deref());
     Ok(())
 }
 
@@ -226,9 +244,39 @@ async fn run_approve(
     run_id: String,
     choice: String,
     request_id: String,
+    execution_generation: u64,
 ) -> Result<(), String> {
     let api = state.api()?;
-    api.approve(&run_id, &choice, &request_id).await.map_err(|e| e.to_string())
+    api.approve(&run_id, &choice, &request_id, execution_generation)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Laufzustand für die Freigabe-Erholung: `status`, `execution_generation`
+/// und `pending_controls`. Die Oberfläche fragt ihn nur, wenn der Server eine
+/// Freigabe mit `stale_generation` abgelehnt hat.
+#[tauri::command]
+async fn run_state(state: State<'_, AppState>, run_id: String) -> Result<Value, String> {
+    let api = state.api()?;
+    api.run_state(&run_id)
+        .await
+        .map_err(|e| run_error_text(&e))
+}
+
+/// Führt einen Slash-Befehl über den lokalen Befehlsdienst aus.
+///
+/// Die Antwort ist die des Gateways (`type`, `output`, `raw`) — dieselbe
+/// Ausgabe wie in der Hermes-Konsole. Ein `ok: false` mit
+/// `error: "unsupported_command"` bedeutet: Der Befehl läuft nur in der
+/// Konsole und wird von der Oberfläche als solcher gemeldet.
+#[tauri::command]
+async fn slash_run(
+    state: State<'_, AppState>,
+    session_id: String,
+    command: String,
+) -> Result<Value, String> {
+    let api = state.api()?;
+    aesmyra_core::slash::run(&api, &session_id, &command).await
 }
 
 #[tauri::command]
@@ -251,6 +299,33 @@ fn acceptable_url(url: &str) -> bool {
         && !url
             .chars()
             .any(|c| c.is_control() || c.is_whitespace() || FORBIDDEN_URL_CHARS.contains(&c))
+}
+
+/// Pfadbilder aus dem Verlauf als Datenadresse reichen. Die Oberfläche kann
+/// keine Dateien lesen — hier wird geprüft, gelesen und kodiert.
+#[tauri::command]
+fn media_data_url(path: String) -> Result<String, String> {
+    aesmyra_core::media::data_url(&path)
+}
+
+/// Nur zur Fehlersuche: Zeilen aus der Oberfläche in eine Protokolldatei
+/// schreiben. Ohne diese Spur ist ein Fehler wie „nach dem Sitzungswechsel
+/// sehe ich nichts“ nicht zu belegen.
+#[tauri::command]
+fn trace(line: String) {
+    use std::io::Write;
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+    let pfad = std::path::Path::new(&home).join(".cache/aesmyra-trace.log");
+    if let Some(dir) = pfad.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&pfad) {
+        let zeit = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let _ = writeln!(f, "{zeit} {line}");
+    }
 }
 
 /// Links nur nach ausdrücklicher Prüfung im Systembrowser öffnen.
@@ -353,8 +428,12 @@ pub fn run() {
             chat_stop,
             run_steer,
             run_approve,
+            run_state,
+            slash_run,
             app_info,
-            open_external
+            open_external,
+            media_data_url,
+            trace
         ])
         .run(tauri::generate_context!())
         .expect("Aesmyra. konnte nicht starten");

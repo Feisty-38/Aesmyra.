@@ -6,8 +6,10 @@
 //! Strukturen — sie muss keine 500 Nachrichten mehr selbst durchlaufen.
 
 pub mod api;
+pub mod media;
 pub mod config;
 pub mod model;
+pub mod slash;
 pub mod sse;
 
 pub use api::{Api, ApiError, Outcome, RunResult};

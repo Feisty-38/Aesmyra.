@@ -28,3 +28,7 @@ crates/aesmyra-app/gen/android/app/src/main/jniLibs/
 # Arbeitsaufträge dieser Maschine
 AUFTRAG-*.md
 scripts/check-reading.sh
+
+# Python
+__pycache__/
+*.pyc

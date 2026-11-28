@@ -51,8 +51,27 @@ pub enum UiEvent {
     Commentary { run_id: String, text: String },
     ToolStarted { run_id: String, name: String, args: String, preview: String },
     ToolFinished { run_id: String, name: String, ok: bool, preview: String },
-    Approval { run_id: String, request_id: String, command: String, choices: Vec<String> },
+    Approval {
+        run_id: String,
+        request_id: String,
+        command: String,
+        choices: Vec<String>,
+        /// Laufgeneration, die der Server zur Freigabe verlangt. Ohne sie
+        /// lehnt der Authority-Pfad den Aufruf mit `invalid_params` ab.
+        execution_generation: u64,
+    },
+    /// Der Server hat die Freigabe zurückgezogen (Laufgeneration gewechselt,
+    /// anderweitig beantwortet oder Lauf beendet). Die Karte in der
+    /// Oberfläche ist damit ungültig — ein Klick darauf liefe in ein 409.
+    ApprovalSettled { run_id: String, request_id: String },
     Completed { run_id: String, content: String },
+    /// Gemessene Kontextgröße des Laufs: die Prompt-Token, die der Server
+    /// für die letzte Anfrage gezählt hat.
+    /// `input_tokens` ist der Mittelwert über die Anfragen des Laufs; `api_calls`
+    /// nennt deren Anzahl (Werkzeugrunden plus Abschluss). Der Server meldet am
+    /// Laufende die **Summe** aller Anfragen (`session_prompt_tokens`), nicht den
+    /// Kontext einer Anfrage — deshalb teilt der Kern durch `api_calls`.
+    Usage { run_id: String, input_tokens: u64, output_tokens: u64, api_calls: u32 },
     Failed { run_id: String, message: String },
     Cancelled { run_id: String },
     Error { run_id: String, message: String },
@@ -72,7 +91,9 @@ impl UiEvent {
             | UiEvent::ToolStarted { run_id, .. }
             | UiEvent::ToolFinished { run_id, .. }
             | UiEvent::Approval { run_id, .. }
+            | UiEvent::ApprovalSettled { run_id, .. }
             | UiEvent::Completed { run_id, .. }
+            | UiEvent::Usage { run_id, .. }
             | UiEvent::Failed { run_id, .. }
             | UiEvent::Cancelled { run_id }
             | UiEvent::Error { run_id, .. }
@@ -172,6 +193,101 @@ impl Api {
         Ok(turns_from(&v))
     }
 
+    /// Eine einzelne Sitzung mit Zählern, Modell und Zeitstempeln.
+    pub async fn session(&self, session_id: &str) -> Result<Value, ApiError> {
+        let path = format!("/api/sessions/{}", seg(session_id));
+        self.send_json(self.http.get(self.url(&path))).await
+    }
+
+    /// Die auf dem Server freigeschalteten Werkzeuggruppen.
+    pub async fn toolsets(&self) -> Result<Value, ApiError> {
+        self.send_json(self.http.get(self.url("/v1/toolsets"))).await
+    }
+
+    /// Die auf dem Server installierten Fähigkeiten.
+    pub async fn skills(&self) -> Result<Value, ApiError> {
+        self.send_json(self.http.get(self.url("/v1/skills"))).await
+    }
+
+    /// Sperrt ein Modell für die Sitzung (Server-seitiger Modellwechsel).
+    pub async fn set_model(&self, session_id: &str, model: &str) -> Result<Value, ApiError> {
+        let path = format!("/api/sessions/{}/model", seg(session_id));
+        self.send_json(self.http.post(self.url(&path)).json(&json!({ "model": model })))
+            .await
+    }
+
+    /// Legt eine benannte Sitzung an und gibt ihre ID zurück.
+    pub async fn new_session(&self, title: &str) -> Result<String, ApiError> {
+        let v = self
+            .send_json(self.http.post(self.url("/api/sessions")).json(&json!({ "title": title })))
+            .await?;
+        v.pointer("/session/id")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+            .ok_or(ApiError::Decode)
+    }
+
+    /// Schickt eine Nachricht in eine Sitzung und liest den Lauf bis zum Ende.
+    pub async fn chat_send(&self, session_id: &str, message: &str) -> Result<(), ApiError> {
+        let path = format!("/api/sessions/{}/chat", seg(session_id));
+        // Ein Lauf kann mehrere Minuten dauern und schickt währenddessen
+        // nicht zwingend Bytes. Der gemeinsame Client begrenzt aber den
+        // Abstand zwischen zwei Stücken auf 30 s — hier deshalb ein eigener
+        // Client ohne Zwischenstück-Limit, dafür mit großzügigem Gesamtlimit.
+        let http = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(6))
+            .timeout(Duration::from_secs(900))
+            .build()
+            .map_err(|_| ApiError::Unreachable)?;
+        let res = http
+            .post(self.url(&path))
+            .bearer_auth(&self.token)
+            .json(&json!({ "message": message }))
+            .send()
+            .await
+            .map_err(|e| if e.is_timeout() { ApiError::Timeout } else { ApiError::Unreachable })?;
+        let status = res.status();
+        if !status.is_success() {
+            let body = res.text().await.unwrap_or_default();
+            return Err(ApiError::Status(status.as_u16(), body.chars().take(300).collect()));
+        }
+        let _ = res.text().await;
+        Ok(())
+    }
+
+    /// Eine einzelne Antwort des Modells ohne Sitzung (Chat-Completions).
+    pub async fn complete(&self, prompt: &str) -> Result<String, ApiError> {
+        // Zusammenfassungen über ein langes Transkript dauern deutlich
+        // länger als die 30 s des gemeinsamen JSON-Pfads.
+        let http = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(6))
+            .timeout(Duration::from_secs(600))
+            .build()
+            .map_err(|_| ApiError::Unreachable)?;
+        let body = json!({
+            "model": "hermes-agent",
+            "messages": [{ "role": "user", "content": prompt }],
+            "stream": false,
+        });
+        let resp = http
+            .post(self.url("/v1/chat/completions"))
+            .bearer_auth(&self.token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| classify(&e))?;
+        let status = resp.status();
+        let text = resp.text().await.map_err(|e| classify(&e))?;
+        if !status.is_success() {
+            return Err(ApiError::Status(status.as_u16(), shorten(&text, 240)));
+        }
+        let v: Value = serde_json::from_str(&text).map_err(|_| ApiError::Decode)?;
+        v.pointer("/choices/0/message/content")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+            .ok_or(ApiError::Decode)
+    }
+
     pub async fn create_session(&self) -> Result<Session, ApiError> {
         let v = self
             .send_json(self.http.post(self.url("/api/sessions")).json(&json!({})))
@@ -204,9 +320,29 @@ impl Api {
         Ok(status.to_string())
     }
 
-    pub async fn approve(&self, run_id: &str, choice: &str, request_id: &str) -> Result<(), ApiError> {
+    /// Vollständiger Laufzustand: `status`, `execution_generation` und
+    /// `pending_controls`. Genau das braucht die Oberfläche, wenn eine
+    /// Freigabe mit `stale_generation` abgelehnt wurde: Sie erfährt damit die
+    /// aktuelle Generation und ob noch eine Freigabe offen ist.
+    pub async fn run_state(&self, run_id: &str) -> Result<Value, ApiError> {
+        let path = format!("/v1/runs/{}", seg(run_id));
+        self.send_json(self.http.get(self.url(&path))).await
+    }
+
+    pub async fn approve(
+        &self,
+        run_id: &str,
+        choice: &str,
+        request_id: &str,
+        execution_generation: u64,
+    ) -> Result<(), ApiError> {
         let path = format!("/v1/runs/{}/approval", seg(run_id));
-        let body = json!({ "choice": choice, "request_id": request_id });
+        // Der Server prüft die Feldmenge exakt: request_id, execution_generation, choice.
+        let body = json!({
+            "choice": choice,
+            "request_id": request_id,
+            "execution_generation": execution_generation,
+        });
         self.send_json(self.http.post(self.url(&path)).json(&body)).await?;
         Ok(())
     }
@@ -363,6 +499,9 @@ struct StreamState {
     run_id: Option<String>,
     done: bool,
     aborted: bool,
+    /// Anzahl der Werkzeugrunden im Lauf. Jede Runde kostet eine eigene Anfrage;
+    /// zusammen mit dem Abschluss ergibt das die Zahl der Prompt-Messungen.
+    tools: u32,
 }
 
 impl StreamState {
@@ -428,6 +567,7 @@ async fn dispatch(frame: Frame, st: &mut StreamState, tx: &Sender<UiEvent>) {
         }
         "tool.started" => {
             if let Ok(v) = serde_json::from_str::<Value>(&frame.data) {
+                st.tools = st.tools.saturating_add(1);
                 let tag = st.tag();
                 let event = UiEvent::ToolStarted {
                     run_id: tag,
@@ -473,6 +613,19 @@ async fn dispatch(frame: Frame, st: &mut StreamState, tx: &Sender<UiEvent>) {
                         .unwrap_or("Werkzeugaufruf")
                         .to_string(),
                     choices,
+                    execution_generation: v
+                        .get("execution_generation")
+                        .and_then(Value::as_u64)
+                        .unwrap_or(0),
+                };
+                emit(tx, st, event).await;
+            }
+        }
+        "approval.settled" | "clarify.settled" => {
+            if let Ok(v) = serde_json::from_str::<Value>(&frame.data) {
+                let event = UiEvent::ApprovalSettled {
+                    run_id: st.run_id.clone().unwrap_or_default(),
+                    request_id: short_field(&v, "prompt_id"),
                 };
                 emit(tx, st, event).await;
             }
@@ -482,6 +635,29 @@ async fn dispatch(frame: Frame, st: &mut StreamState, tx: &Sender<UiEvent>) {
                 let content = v.get("content").and_then(Value::as_str).unwrap_or("").to_string();
                 let tag = st.tag();
                 emit(tx, st, UiEvent::Completed { run_id: tag, content }).await;
+            }
+        }
+        "run.completed" => {
+            if let Ok(v) = serde_json::from_str::<Value>(&frame.data) {
+                let usage = v.get("usage").unwrap_or(&Value::Null);
+                let input = usage.get("input_tokens").and_then(Value::as_u64).unwrap_or(0);
+                let output = usage.get("output_tokens").and_then(Value::as_u64).unwrap_or(0);
+                if input > 0 {
+                    // `usage.input_tokens` ist die Summe über alle Anfragen des Laufs
+                    // (`session_prompt_tokens`), nicht der Kontext einer Anfrage. Bei
+                    // einem Werkzeuglauf summiert sie den stetig wachsenden Prompt
+                    // mehrfach auf und übertreibt dadurch um ein Vielfaches. Deshalb
+                    // durch die Zahl der Anfragen teilen: Werkzeugrunden plus Abschluss.
+                    let calls = st.tools.saturating_add(1);
+                    let per_call = (input as f64 / calls as f64).round().max(1.0) as u64;
+                    let tag = st.tag();
+                    emit(
+                        tx,
+                        st,
+                        UiEvent::Usage { run_id: tag, input_tokens: per_call, output_tokens: output, api_calls: calls },
+                    )
+                    .await;
+                }
             }
         }
         "run.failed" => {
@@ -524,7 +700,11 @@ fn short_field(v: &Value, key: &str) -> String {
 }
 
 fn short_field_opt(v: &Value, key: &str) -> Option<String> {
-    v.get(key).map(|p| shorten(&p.to_string().trim_matches('"').to_string(), 400))
+    /* Fehlt der Wert oder ist er null, bleibt das Feld leer — „null" ist kein Text. */
+    match v.get(key) {
+        None | Some(Value::Null) => None,
+        Some(p) => Some(shorten(p.to_string().trim_matches('"'), 400)),
+    }
 }
 
 fn shorten(s: &str, n: usize) -> String {
@@ -607,6 +787,58 @@ mod tests {
         assert!(kinds.contains(&"run_started".to_string()), "{kinds:?}");
         assert!(kinds.contains(&"delta".to_string()), "{kinds:?}");
         assert!(kinds.contains(&"stream_ended".to_string()), "{kinds:?}");
+    }
+
+    #[tokio::test]
+    async fn meldet_die_prompt_token() {
+        let body = concat!(
+            "event: run.started\ndata: {\"run_id\":\"r4\"}\n\n",
+            "event: assistant.delta\ndata: {\"delta\":\"ok\"}\n\n",
+            "event: run.completed\ndata: {\"usage\":{\"input_tokens\":17446,\"output_tokens\":3}}\n\n",
+            "event: done\ndata: {}\n\n"
+        );
+        let base = serve(move |_| sse(body));
+        let api = Api::new(base, "test").unwrap();
+        let (tx, mut rx) = tokio::sync::mpsc::channel(64);
+
+        api.chat_stream("s1", "hi", &tx).await.expect("Strom");
+        drop(tx);
+        let mut seen = 0;
+        while let Some(event) = rx.recv().await {
+            if let UiEvent::Usage { input_tokens, .. } = event {
+                assert_eq!(input_tokens, 17446);
+                seen += 1;
+            }
+        }
+        assert_eq!(seen, 1, "Prompt-Token wurden nicht gemeldet");
+    }
+
+    #[tokio::test]
+    async fn teilt_die_prompt_summe_durch_die_anfragen() {
+        // Ein Werkzeuglauf kostet zwei Anfragen; der Server meldet die Summe beider
+        // Prompts. Der Kern muss daraus den Kontext einer Anfrage machen, sonst
+        // zeigt die Fußzeile das Doppelte.
+        let body = concat!(
+            "event: run.started\ndata: {\"run_id\":\"r5\"}\n\n",
+            "event: tool.started\ndata: {\"tool_name\":\"terminal\"}\n\n",
+            "event: tool.completed\ndata: {\"tool_name\":\"terminal\"}\n\n",
+            "event: assistant.delta\ndata: {\"delta\":\"ok\"}\n\n",
+            "event: run.completed\ndata: {\"usage\":{\"input_tokens\":36000,\"output_tokens\":4}}\n\n",
+            "event: done\ndata: {}\n\n"
+        );
+        let base = serve(move |_| sse(body));
+        let api = Api::new(base, "test").unwrap();
+        let (tx, mut rx) = tokio::sync::mpsc::channel(64);
+
+        api.chat_stream("s1", "hi", &tx).await.expect("Strom");
+        drop(tx);
+        let mut gesehen: Option<(u64, u32)> = None;
+        while let Some(event) = rx.recv().await {
+            if let UiEvent::Usage { input_tokens, api_calls, .. } = event {
+                gesehen = Some((input_tokens, api_calls));
+            }
+        }
+        assert_eq!(gesehen, Some((18000, 2)), "Summe wurde nicht auf eine Anfrage umgelegt");
     }
 
     #[tokio::test]

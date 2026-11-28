@@ -50,20 +50,23 @@ impl SseParser {
         self.buf.extend_from_slice(chunk);
 
         let mut out = Vec::new();
-        loop {
-            let from = self.scanned.min(self.buf.len());
-            let Some((idx, len)) = separator_from(&self.buf, from) else {
-                // Ein Trenner ist höchstens vier Bytes lang; nur die letzten
-                // drei Bytes können der Anfang eines geteilten Trenners sein.
-                self.scanned = self.buf.len().saturating_sub(3);
-                break;
-            };
-            let raw: Vec<u8> = self.buf.drain(..idx + len).collect();
-            let text = String::from_utf8_lossy(&raw[..idx]);
+        let mut cut = 0usize;
+        let mut scan = self.scanned.min(self.buf.len());
+
+        while let Some((idx, len)) = separator_from(&self.buf, scan) {
+            let text = String::from_utf8_lossy(&self.buf[cut..idx]);
             if let Some(frame) = parse_frame(&text) {
                 out.push(frame);
             }
             // Nach dem Ausschneiden verschiebt sich der Rest nach vorn.
+            cut = idx + len;
+            scan = cut;
+        }
+
+        if cut > 0 {
+            // Einmal am Ende ausschneiden: vorher kopierte jeder Rahmen den
+            // gesamten Rest, was bei gebündelten Rahmen quadratisch kostete.
+            self.buf.drain(..cut);
             self.scanned = 0;
         }
 
@@ -71,6 +74,11 @@ impl SseParser {
             self.buf.clear();
             self.scanned = 0;
             return Err(SseError::Overflow(MAX_BUFFER));
+        }
+        if cut == 0 {
+            // Ein Trenner ist höchstens vier Bytes lang; nur die letzten
+            // drei Bytes können der Anfang eines geteilten Trenners sein.
+            self.scanned = self.buf.len().saturating_sub(3);
         }
         Ok(out)
     }

@@ -18,6 +18,11 @@ pub struct Session {
     pub message_count: u64,
     pub estimated_cost_usd: f64,
     pub pinned: bool,
+    /* Herkunft: „api_server" schreibt der Server, „desktop"/„cli" gehören anderen
+       Oberflächen und sind hier nur lesbar. */
+    pub source: String,
+    /* Modell, mit dem die Sitzung läuft — vom Server gemeldet, leer wenn unbekannt. */
+    pub model: String,
 }
 
 #[derive(Debug, Clone, Serialize, Default)]
@@ -37,7 +42,30 @@ pub struct Part {
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct Turn {
     pub user: Option<String>,
+    /* Während eines Laufs nachgeschoben: der Kern setzt dafür einen Rahmen. */
+    #[serde(default)]
+    pub steered: bool,
+    /* Nachgeschobene Texte, die zu dieser Runde gehören (nicht als eigene Runde). */
+    #[serde(default)]
+    pub steer: Vec<String>,
     pub parts: Vec<Part>,
+}
+
+/// Zerlegt eine nachgeschobene Eingabe in ihren Text; der Rahmen bleibt weg.
+pub fn split_steered(raw: &str) -> (String, bool) {
+    const OPEN: &str = "[OUT-OF-BAND USER MESSAGE";
+    const CLOSE: &str = "[/OUT-OF-BAND USER MESSAGE]";
+    let s = raw.trim_start();
+    if !s.starts_with(OPEN) {
+        return (raw.to_string(), false);
+    }
+    let rest = match s.find(']') {
+        Some(i) => &s[i + 1..],
+        None => return (raw.to_string(), false),
+    };
+    let body = rest.trim_start_matches(['\n', '\r', ' ']);
+    let body = body.split(CLOSE).next().unwrap_or(body).trim_end();
+    (body.to_string(), true)
 }
 
 /* ── Hilfen für unbeständige Felder ─────────────────────────────────── */
@@ -121,7 +149,14 @@ impl Session {
             message_count: num_of(v.get("message_count")) as u64,
             estimated_cost_usd: num_of(v.get("estimated_cost_usd")),
             pinned: flag_of(v.get("pinned")),
+            source: v.get("source").and_then(Value::as_str).unwrap_or("").to_string(),
+            model: str_of(v.get("model")),
         })
+    }
+
+    /// Nur Sitzungen dieser Oberflächen nimmt der Server zum Schreiben an.
+    pub fn writable(&self) -> bool {
+        matches!(self.source.as_str(), "api_server" | "bot_room")
     }
 
     /// Sitzungen, die im Verzeichnis erscheinen sollen, in Aesmyra.-Reihenfolge.
@@ -229,7 +264,16 @@ pub fn turns_from(v: &Value) -> Vec<Turn> {
     for m in &msgs {
         match m.get("role").and_then(Value::as_str) {
             Some("user") => {
-                turns.push(Turn { user: Some(text_of(m.get("content").unwrap_or(&Value::Null))), parts: Vec::new() });
+                let (user, steered) = split_steered(&text_of(m.get("content").unwrap_or(&Value::Null)));
+                /* Ein Nachschub gehört zur laufenden Runde, nicht zu einer neuen. */
+                if steered {
+                    if let Some(i) = turns.len().checked_sub(1) {
+                        turns[i].steer.push(user);
+                        cur = Some(i);
+                        continue;
+                    }
+                }
+                turns.push(Turn { user: Some(user), steered, steer: Vec::new(), parts: Vec::new() });
                 cur = Some(turns.len() - 1);
             }
             Some("assistant") => {
@@ -306,5 +350,17 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].id, "a");
         assert_eq!(list[1].id, "b");
+    }
+
+    #[test]
+    fn uebernimmt_das_modell() {
+        let v = json!({"data": [
+            {"id":"a","model":"deepseek/deepseek-v4.1-flash-1017","last_active":10},
+            {"id":"b","last_active":20}
+        ]});
+        let list = Session::visible(&v);
+        let find = |id: &str| list.iter().find(|s| s.id == id).unwrap();
+        assert_eq!(find("a").model, "deepseek/deepseek-v4.1-flash-1017");
+        assert_eq!(find("b").model, "");
     }
 }
