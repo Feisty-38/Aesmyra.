@@ -7,11 +7,21 @@
 <meta name="theme-color" content="#08070b">
 <title>Aesmyra.</title>
 <link rel="stylesheet" href="aesmyra.css">
+<link rel="stylesheet" href="slash.css">
+<script>
+/* Darstellung vor dem ersten Bild setzen, sonst blitzt das dunkle Thema auf. */
+try {
+  var t = localStorage.getItem('aesmyra.theme');
+  var a = localStorage.getItem('aesmyra.accent');
+  if (t) document.documentElement.dataset.theme = t;
+  if (a) document.documentElement.dataset.accent = a;
+} catch (e) {}
+</script>
 </head>
 <body class="boot" data-platform="pc" data-view="index">
 
-<div class="bloom"><i class="top"></i><i class="rgt"></i><i class="bot"></i><i class="lft"></i></div>
-<div class="edge"><i class="top"></i><i class="rgt"></i><i class="bot"></i><i class="lft"></i></div>
+<div class="bloom"><b class="ring"><span class="sweep"></span></b></div>
+<div class="edge"><b class="ring"><span class="sweep"></span></b></div>
 
 <!-- ═══ Verzeichnis ═══════════════════════════════════════════════ -->
 
@@ -79,7 +89,7 @@
         </div>
         <div class="meta">
           <span class="status" id="status">bereit</span>
-          <span class="dots" id="dots"></span>
+          <span class="gauge" id="gauge"></span>
           <span id="pgnum">—</span>
         </div>
       </form>
@@ -131,6 +141,26 @@
       <button type="button" id="setTest">Prüfen</button>
     </div>
     <div class="state" id="setState"></div>
+    <div class="field-row look">
+      <label>Darstellung</label>
+      <div class="pickrow" id="setTheme">
+        <button type="button" data-theme-choice="dark">Dunkel</button>
+        <button type="button" data-theme-choice="light">Hell</button>
+      </div>
+      <div class="hint">Gilt sofort und beim nächsten Start.</div>
+    </div>
+    <div class="field-row">
+      <label>Akzentfarbe</label>
+      <div class="swatches" id="setAccent">
+        <button type="button" data-accent-choice="violett" style="background:#a78bfa;color:#a78bfa" aria-label="Violett"></button>
+        <button type="button" data-accent-choice="blue" style="background:#7cb4ff;color:#7cb4ff" aria-label="Blau"></button>
+        <button type="button" data-accent-choice="eis" style="background:#a8e0ff;color:#a8e0ff" aria-label="Eisblau"></button>
+        <button type="button" data-accent-choice="tuerkis" style="background:#4fd8c4;color:#4fd8c4" aria-label="Tuerkis"></button>
+        <button type="button" data-accent-choice="rose" style="background:#f59ac0;color:#f59ac0" aria-label="Rose"></button>
+        <button type="button" data-accent-choice="amber" style="background:#f0b94b;color:#f0b94b" aria-label="Amber"></button>
+      </div>
+      <div class="hint">Färbt Knöpfe, Markierungen und das Randlicht.</div>
+    </div>
     <div class="hint" id="setInfo" style="margin-top:24px"></div>
   </div>
 </div>
@@ -150,5 +180,7 @@
 <nav class="shell" id="shell"></nav>
 <div class="toast" id="toast"></div>
 <script src="app.js"></script>
+<script src="commands.js"></script>
+<script src="slash.js"></script>
 </body>
 </html>
