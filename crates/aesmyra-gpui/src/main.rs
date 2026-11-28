@@ -727,7 +727,19 @@ fn live_block(s: &AppState, t: &Theme, st: Entity<AppState>) -> AnyElement {
                         .text_color(t.fg())
                         .child(SharedString::from(ap.command.clone())),
                 )
-                .child(choices),
+                .child(choices)
+                .child(
+                    // Ohne diesen Satz sieht der Nutzer nicht, dass eine
+                    // unbeantwortete Freigabe den Lauf beendet.
+                    div()
+                        .text_size(px(11.5))
+                        .line_height(px(16.))
+                        .text_color(t.dim())
+                        .child(SharedString::from(format!(
+                            "seit {} s offen · ohne Antwort verwirft der Server die Freigabe und der Lauf endet",
+                            s.clock.saturating_duration_since(ap.since).as_secs()
+                        ))),
+                ),
         );
     }
 
@@ -768,6 +780,23 @@ fn composer(s: &AppState, t: &Theme, st: Entity<AppState>) -> AnyElement {
         .flex_col()
         .gap_1();
     let _ = st;
+
+    if s.open.as_ref().is_some_and(|o| o.read_only) {
+        box_el = box_el.child(
+            div()
+                .w_full()
+                .pb(px(8.))
+                .mb(px(6.))
+                .border_b_1()
+                .border_color(t.rule())
+                .text_size(px(11.5))
+                .line_height(px(16.))
+                .text_color(t.dim())
+                .child(SharedString::from(
+                    "Sitzung aus einem anderen Programm — lesbar, aber nicht fortsetzbar. Links eine neue Sitzung anlegen.",
+                )),
+        );
+    }
 
     if !s.picker.is_empty() {
         let mut list = div()

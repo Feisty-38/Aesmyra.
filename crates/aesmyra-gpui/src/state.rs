@@ -71,6 +71,8 @@ pub struct Approval {
     pub command: String,
     pub choices: Vec<String>,
     pub execution_generation: u64,
+    /// Wann die Anfrage ankam — Grundlage für den Hinweis, wie lange sie offen ist.
+    pub since: Instant,
 }
 
 #[derive(Clone, Debug)]
@@ -80,6 +82,10 @@ pub struct Open {
     pub model: String,
     pub last_active: f64,
     pub turns: Vec<Turn>,
+    /// Sitzungen aus Terminal, Desktop oder Mobilteil gehören anderen
+    /// Oberflächen. Der Server lässt dort keine Läufe zu (permission_denied);
+    /// lesen geht, schreiben nicht.
+    pub read_only: bool,
 }
 
 pub struct SettingsForm {
@@ -283,10 +289,21 @@ impl AppState {
                     command,
                     choices,
                     execution_generation,
+                    since: Instant::now(),
                 });
             }
             UiEvent::ApprovalSettled { request_id, .. } => {
+                // Steht die Anfrage noch offen, hat nicht der Nutzer entschieden,
+                // sondern der Server: Zeitablauf, neuer Lauf oder Abschluss.
+                // Ohne Hinweis bliebe die Karte einfach wortlos verschwunden.
+                let offen = self.live.approvals.iter().any(|a| a.request_id == request_id);
                 self.live.approvals.retain(|a| a.request_id != request_id);
+                if offen {
+                    self.notice = Some((
+                        "Freigabe zurückgezogen — der Lauf endet ohne Antwort.".into(),
+                        false,
+                    ));
+                }
             }
             UiEvent::Completed { content, .. } => {
                 if !content.trim().is_empty() {
@@ -337,7 +354,7 @@ impl AppState {
                     let _ = tx.send(Msg::Sessions(v));
                 }
                 Err(e) => {
-                    let _ = tx.send(Msg::Failed(e.to_string()));
+                    let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                 }
             }
         });
@@ -376,6 +393,7 @@ impl AppState {
             model: s.model.clone(),
             last_active: s.last_active,
             turns: Vec::new(),
+            read_only: !matches!(s.source.as_str(), "api_server" | "bot_room"),
         });
         self.mode = Mode::Reading;
         self.live = Live::default();
@@ -396,7 +414,7 @@ impl AppState {
                         let _ = tx.send(Msg::Turns(v));
                     }
                     Err(e) => {
-                        let _ = tx.send(Msg::Failed(e.to_string()));
+                        let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                     }
                 }
             });
@@ -411,6 +429,18 @@ impl AppState {
         if trimmed.is_empty() {
             return;
         }
+        // Fremde Sitzung: der Server lässt hier keinen Lauf zu. Text bleibt
+        // stehen, damit nichts verloren geht; Befehle wirken weiter.
+        if !trimmed.starts_with('/') && self.open.as_ref().is_some_and(|o| o.read_only) {
+            self.notice = Some((
+                "Diese Sitzung gehört einem anderen Programm — hier nur lesbar. Links eine neue Sitzung anlegen."
+                    .into(),
+                false,
+            ));
+            cx.notify();
+            return;
+        }
+
         // Ein hervorgehobener Vorschlag hat Vorrang.
         if let Some(c) = self.picker.first().cloned() {
             let prefix = format!("/{}", c.n);
@@ -476,7 +506,7 @@ impl AppState {
                     let _ = tx.send(Msg::RunDone(r.outcome));
                 }
                 Err(e) => {
-                    let _ = tx.send(Msg::Failed(e.to_string()));
+                    let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                 }
             }
         });
@@ -504,7 +534,7 @@ impl AppState {
                     let _ = tx.send(Msg::Notice(format!("Freigabe: {choice}"), true));
                 }
                 Err(e) => {
-                    let _ = tx.send(Msg::Failed(e.to_string()));
+                    let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                 }
             }
         });
@@ -559,7 +589,7 @@ impl AppState {
                             let _ = tx.send(Msg::Notice("Nachricht eingeschoben".into(), true));
                         }
                         Err(e) => {
-                            let _ = tx.send(Msg::Failed(e.to_string()));
+                            let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                         }
                     }
                 });
@@ -608,7 +638,7 @@ impl AppState {
                     let _ = tx.send(Msg::Created(Box::new(s)));
                 }
                 Err(e) => {
-                    let _ = tx.send(Msg::Failed(e.to_string()));
+                    let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                 }
             }
         });
@@ -628,7 +658,7 @@ impl AppState {
                     let _ = tx.send(Msg::SetModel(m));
                 }
                 Err(e) => {
-                    let _ = tx.send(Msg::Failed(e.to_string()));
+                    let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                 }
             }
         });
@@ -657,7 +687,7 @@ impl AppState {
                     let _ = tx.send(Msg::Deleted(id));
                 }
                 Err(e) => {
-                    let _ = tx.send(Msg::Failed(e.to_string()));
+                    let _ = tx.send(Msg::Failed(aesmyra_core::api::error_text(&e)));
                 }
             }
         });
@@ -756,6 +786,7 @@ impl AppState {
             title: "KWin-Skript für Fensterraster".into(),
             model: "deepseek/deepseek-v4.1-flash-1017".into(),
             last_active: now - 420.0,
+            read_only: false,
             turns: vec![
                 Turn {
                     user: Some("Schreib mir ein KWin-Skript, das das aktive Fenster in die linke Hälfte rastet.".into()),
@@ -822,6 +853,7 @@ impl AppState {
                     command: "qdbus6 org.kde.KWin /Scripting loadScript /home/kev/raster.js".into(),
                     choices: vec!["Ausführen".into(), "Einmalig".into(), "Ablehnen".into()],
                     execution_generation: 1,
+                    since: Instant::now(),
                 });
                 self.live.started = Some(Instant::now());
                 self.live.input_tokens = 12_840;
