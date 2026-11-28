@@ -38,6 +38,25 @@ pub enum ApiError {
     Config(String),
 }
 
+/// Klartext für die Oberfläche. Wichtig: `permission_denied` ist kein Netzfehler —
+/// der Server lässt Läufe nur auf Sitzungen zu, die über die Schnittstelle
+/// angelegt wurden (`api_server`) oder aus einem Raum stammen. Sitzungen aus
+/// Terminal, Desktop oder Mobilteil sind hier nur lesbar.
+pub fn error_text(e: &ApiError) -> String {
+    match e {
+        ApiError::Status(401, _) => "Der Server hat den Schlüssel abgelehnt.".to_string(),
+        ApiError::Status(403, body) if body.contains("permission_denied") => {
+            "Diese Sitzung gehört einem anderen Programm und lässt sich hier nicht fortsetzen. Lege eine neue Sitzung an."
+                .to_string()
+        }
+        ApiError::Status(403, _) => "Der Server hat die Anfrage abgelehnt.".to_string(),
+        ApiError::Status(404, _) => "Die Sitzung gibt es auf dem Server nicht mehr.".to_string(),
+        ApiError::Timeout => "Zeitüberschreitung — der Server hat nicht geantwortet.".to_string(),
+        ApiError::Unreachable => "Server nicht erreichbar.".to_string(),
+        other => other.to_string(),
+    }
+}
+
 /// Was die Oberfläche während eines Laufs erfährt.
 ///
 /// Jedes Ereignis trägt die `run_id` des Laufs, zu dem es gehört — leer, wenn
@@ -666,7 +685,7 @@ async fn dispatch(frame: Frame, st: &mut StreamState, tx: &Sender<UiEvent>) {
                 .and_then(|v| v.get("message").and_then(Value::as_str).map(str::to_string))
                 .unwrap_or_else(|| "Lauf fehlgeschlagen".into());
             let tag = st.tag();
-            emit(tx, st, UiEvent::Failed { run_id: tag, message }).await;
+            emit(tx, st, UiEvent::Failed { run_id: tag, message: error_code_text(&message) }).await;
         }
         "run.cancelled" => {
             let tag = st.tag();
@@ -678,13 +697,29 @@ async fn dispatch(frame: Frame, st: &mut StreamState, tx: &Sender<UiEvent>) {
                 .and_then(|v| v.get("message").and_then(Value::as_str).map(str::to_string))
                 .unwrap_or_else(|| "Fehler".into());
             let tag = st.tag();
-            emit(tx, st, UiEvent::Error { run_id: tag, message }).await;
+            emit(tx, st, UiEvent::Error { run_id: tag, message: error_code_text(&message) }).await;
         }
         "done" => {
             st.done = true;
         }
         _ => {}
     }
+}
+
+/// Serverfehler im Ereignisstrom kommen als kurzer Code. Für die Oberfläche
+/// zählt der Satz, den ein Mensch versteht.
+fn error_code_text(code: &str) -> String {
+    match code {
+        "permission_denied" => "Diese Sitzung gehört einem anderen Programm und lässt sich hier nicht fortsetzen. Lege eine neue Sitzung an.",
+        "session_busy" => "In dieser Sitzung läuft schon etwas — warte, bis der Lauf endet.",
+        "admission_conflict" => "Ein anderer Lauf hat die Sitzung gerade übernommen.",
+        "unknown_execution" => "Der Server kennt diesen Lauf nicht mehr.",
+        "not_found" => "Die Sitzung gibt es auf dem Server nicht mehr.",
+        "timeout" => "Der Lauf hat zu lange gebraucht und wurde abgebrochen.",
+        "" => "Der Lauf ist fehlgeschlagen.",
+        other => other,
+    }
+    .to_string()
 }
 
 fn tool_name(v: &Value) -> String {

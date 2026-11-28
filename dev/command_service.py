@@ -31,6 +31,19 @@ HOST = "127.0.0.1"
 PORT = 8122
 MAX_BODY = 64 * 1024
 
+# Nur diese Herkünfte dürfen den Dienst aus einer Seite heraus aufrufen. Der
+# Kern und die Vorschau fragen serverseitig an und senden keinen Origin-Kopf;
+# eine fremde Webseite im selben Browser soll keine Slash-Befehle auslösen.
+ALLOWED_ORIGINS = frozenset({
+    "http://127.0.0.1:8120",
+    "http://localhost:8120",
+    "http://127.0.0.1:8121",
+    "http://localhost:8121",
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+})
+
 HELP_TEXT = """Verfügbare Befehle:
   /status              Sitzung, Modell, Kontext und Token
   /context             Kontextauslastung und Token-Aufschlüsselung
@@ -312,22 +325,56 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args) -> None:  # noqa: A002 — Signatur der Basisklasse
         return
 
+    def _allowed_origin(self) -> str:
+        origin = (self.headers.get("Origin") or "").strip()
+        return origin if origin in ALLOWED_ORIGINS else ""
+
+    def _origin_ok(self) -> bool:
+        """Ohne Origin-Kopf (Kern, curl) immer erlaubt, mit Kopf nur aus der Liste."""
+        origin = (self.headers.get("Origin") or "").strip()
+        return not origin or origin in ALLOWED_ORIGINS
+
     def _send(self, code: int, value: dict) -> None:
         body = json.dumps(value, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        origin = self._allowed_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(body)
 
+    def do_OPTIONS(self) -> None:  # noqa: N802 — Name der Basisklasse
+        if not self._origin_ok():
+            self._send(403, {"ok": False, "error": "Herkunft nicht erlaubt"})
+            return
+        self.send_response(204)
+        origin = self._allowed_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "content-type")
+        self.send_header("Access-Control-Max-Age", "600")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_GET(self) -> None:
+        if not self._origin_ok():
+            self._send(403, {"ok": False, "error": "Herkunft nicht erlaubt"})
+            return
         if self.path == "/health":
             self._send(200, {"ok": True})
         else:
             self._send(404, {"ok": False, "error": "unbekannter Pfad"})
 
     def do_POST(self) -> None:
+        if not self._origin_ok():
+            self._send(403, {"ok": False, "error": "Herkunft nicht erlaubt"})
+            return
         if self.path != "/command":
             self._send(404, {"ok": False, "error": "unbekannter Pfad"})
             return

@@ -182,3 +182,37 @@ Ereignisstrom des Devservers zeigt sie in meinen Tests nicht, der Rücksende-Weg
 
 Gesamteindruck: von „funktioniert, aber eine Kernfunktion ist blockiert" zu
 „Kernfunktionen arbeiten, zwei Randprobleme offen".
+
+## Nachtrag 28. November 2026
+
+Nachgeprüft und geändert, jeweils mit Messung statt Vermutung.
+
+- **B6 — Ereignisstrom bleibt still:** Nachgestellt mit `POST /chat?sessionId=…`.
+  Der Strom liefert `run_started`, `delta`, `usage`, `completed`, `stream_ended`,
+  `finished` — aber nur auf Sitzungen mit Herkunft `api_server`. Der Gateway
+  weist Läufe auf Sitzungen anderer Oberflächen ab (`admission`, Abweisung
+  `permission_denied`), und zwar bevor irgendein Ereignis entsteht. Der stille
+  Fall im Audit war also eine Sitzung aus dem Terminal, kein Fehler des Servers.
+  Zwei Änderungen daraus: der Strom schickt nun alle zehn Sekunden eine
+  Kommentarzeile (`: ping`), damit ein wartender Lauf nicht wie ein toter
+  aussieht; und die Oberfläche sperrt solche Sitzungen sichtbar als „nur lesbar".
+- **B7 — offener CORS-Kopf:** `Access-Control-Allow-Origin: *` ist ersetzt durch
+  eine feste Liste (Vorschau auf 8120, beide Dienstports, die drei
+  Tauri-Herkünfte). Gemessen: ohne Herkunft und mit fremder Herkunft kein Kopf,
+  mit `http://127.0.0.1:8120` und `tauri://localhost` wird sie zurückgegeben;
+  Vorabanfrage (OPTIONS) beantwortet mit 204 für erlaubte, mit 403 für fremde
+  Herkünfte. `dev/command_service.py` prüft dasselbe und lehnt fremde Herkünfte
+  mit 403 ab (gemessen: `evil.example` → 403, ohne Herkunft → 200).
+- **B9 — kein Ablaufhinweis:** Die Freigabekarte sagt jetzt, dass eine
+  unbeantwortete Freigabe vom Server verworfen wird und der Lauf endet; in der
+  GPUI-Fassung zusätzlich mit laufender Sekundenzahl. Zieht der Server eine
+  offene Anfrage zurück, erscheint statt des wortlosen Verschwindens der Hinweis
+  „Freigabe zurückgezogen — der Lauf endet ohne Antwort."
+- **B8 — wartende Freigabe blockiert die Sitzung:** unverändert und außerhalb
+  dieses Projekts; die Sitzungssperre sitzt im Gateway, nicht im Client.
+- **Klartext statt Fehlercode:** `permission_denied` und verwandte Codes werden
+  im Ereignisstrom in Sätze übersetzt, damit die Oberfläche nicht mit
+  `permission_denied` dasteht.
+
+Weiterhin ungeprüft: das Aussehen der Karten im laufenden Fenster — dafür
+braucht es eine Aufnahme, und die steht noch aus.

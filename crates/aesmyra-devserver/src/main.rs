@@ -18,6 +18,31 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 
 const ADDR: &str = "127.0.0.1:8121";
+
+/// Herkünfte, denen der Dienst antworten darf: die Vorschau selbst, die
+/// Tauri-Fenster (macOS/Linux `tauri://localhost`, Windows `http://tauri.localhost`)
+/// und die WebView auf Android/iOS (`https://tauri.localhost`).
+const ALLOWED_ORIGINS: [&str; 7] = [
+    "http://127.0.0.1:8120",
+    "http://localhost:8120",
+    "http://127.0.0.1:8121",
+    "http://localhost:8121",
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+];
+
+/// `Access-Control-Allow-Origin` nur für bekannte Herkünfte. Fehlt die
+/// Herkunft (curl, systemd), bleibt der Kopf weg — das schadet niemandem,
+/// verhindert aber, dass eine fremde Seite Sitzungstitel mitliest.
+fn cors_headers(origin: &Option<String>) -> String {
+    match origin {
+        Some(o) if ALLOWED_ORIGINS.iter().any(|a| a.eq_ignore_ascii_case(o)) => {
+            format!("Access-Control-Allow-Origin: {o}\r\nVary: Origin\r\n")
+        }
+        _ => String::new(),
+    }
+}
 const MAX_HEAD: usize = 64 * 1024;
 const MAX_BODY: usize = 2 * 1024 * 1024;
 
@@ -103,6 +128,9 @@ struct Req {
     method: String,
     path: String,
     query: HashMap<String, String>,
+    /// `Origin` der Anfrage, falls gesetzt. Nur Herkünfte aus der Liste
+    /// bekommen einen CORS-Kopf; ohne Kopf kann keine fremde Seite mitlesen.
+    origin: Option<String>,
     body: Vec<u8>,
 }
 
@@ -148,10 +176,17 @@ async fn read_req(stream: &mut TcpStream) -> Option<Req> {
     let target = parts.next()?.to_string();
 
     let mut length = 0usize;
+    let mut origin: Option<String> = None;
     for line in lines {
         if let Some((k, v)) = line.split_once(':') {
             if k.trim().eq_ignore_ascii_case("content-length") {
                 length = v.trim().parse().unwrap_or(0);
+            }
+            if k.trim().eq_ignore_ascii_case("origin") {
+                let val = v.trim();
+                if !val.is_empty() {
+                    origin = Some(val.to_string());
+                }
             }
         }
     }
@@ -182,7 +217,7 @@ async fn read_req(stream: &mut TcpStream) -> Option<Req> {
         query.insert(decode(k), decode(v));
     }
 
-    Some(Req { method, path, query, body })
+    Some(Req { method, path, query, origin, body })
 }
 
 fn decode(s: &str) -> String {
@@ -238,11 +273,11 @@ fn stamp() -> String {
     format!("{:02}:{:02}:{:02}", s / 3600 + 1, (s % 3600) / 60, s % 60)
 }
 
-async fn send(stream: &mut TcpStream, code: u16, value: &Value) {
+async fn send(stream: &mut TcpStream, cors: &str, code: u16, value: &Value) {
     let body = serde_json::to_vec(value).unwrap_or_else(|_| b"{}".to_vec());
     let head = format!(
         "HTTP/1.1 {code} {}\r\nContent-Type: application/json; charset=utf-8\r\n\
-         Content-Length: {}\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-store\r\n\
+         Content-Length: {}\r\n{cors}Cache-Control: no-store\r\n\
          Connection: close\r\n\r\n",
         reason(code),
         body.len()
@@ -252,18 +287,20 @@ async fn send(stream: &mut TcpStream, code: u16, value: &Value) {
     let _ = stream.flush().await;
 }
 
-async fn send_ok(stream: &mut TcpStream, value: Value) {
-    send(stream, 200, &value).await;
+async fn send_ok(stream: &mut TcpStream, cors: &str, value: Value) {
+    send(stream, cors, 200, &value).await;
 }
 
-async fn send_err(stream: &mut TcpStream, code: u16, message: impl Into<String>) {
-    send(stream, code, &json!({ "error": message.into() })).await;
+async fn send_err(stream: &mut TcpStream, cors: &str, code: u16, message: impl Into<String>) {
+    send(stream, cors, code, &json!({ "error": message.into() })).await;
 }
 
-async fn start_stream(stream: &mut TcpStream) -> bool {
-    let head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream; charset=utf-8\r\n\
-                Cache-Control: no-store\r\nX-Accel-Buffering: no\r\n\
-                Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n";
+async fn start_stream(stream: &mut TcpStream, cors: &str) -> bool {
+    let head = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream; charset=utf-8\r\n\
+         Cache-Control: no-store\r\nX-Accel-Buffering: no\r\n\
+         {cors}Connection: close\r\n\r\n"
+    );
     stream.write_all(head.as_bytes()).await.is_ok() && stream.flush().await.is_ok()
 }
 
@@ -279,8 +316,27 @@ async fn send_event(stream: &mut TcpStream, event: &UiEvent) -> bool {
 /* ── Wege ───────────────────────────────────────────────────────────── */
 
 async fn route(req: Req, stream: &mut TcpStream) {
+    let cors = cors_headers(&req.origin);
+
+    // Vorabanfrage des Browsers: nur für bekannte Herkünfte beantworten.
+    if req.method == "OPTIONS" {
+        if cors.is_empty() {
+            send_err(stream, &cors, 403, "Herkunft nicht erlaubt").await;
+            return;
+        }
+        let head = format!(
+            "HTTP/1.1 204 No Content\r\n{cors}\
+             Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
+             Access-Control-Allow-Headers: content-type\r\n\
+             Access-Control-Max-Age: 600\r\nConnection: close\r\n\r\n"
+        );
+        let _ = stream.write_all(head.as_bytes()).await;
+        let _ = stream.flush().await;
+        return;
+    }
+
     match (req.method.as_str(), req.path.as_str()) {
-        ("GET", "/health") => send_ok(stream, json!({ "ok": true })).await,
+        ("GET", "/health") => send_ok(stream, &cors, json!({ "ok": true })).await,
 
         ("GET", "/state") => match settings_view() {
             Some(view) => {
@@ -290,36 +346,36 @@ async fn route(req: Req, stream: &mut TcpStream) {
                 };
                 let session_json: Vec<Value> =
                     sessions.iter().filter_map(|s| serde_json::to_value(s).ok()).collect();
-                send_ok(stream, json!({ "settings": view, "sessions": session_json })).await;
+                send_ok(stream, &cors, json!({ "settings": view, "sessions": session_json })).await;
             }
-            None => send_err(stream, 500, "Zustand fehlt").await,
+            None => send_err(stream, &cors, 500, "Zustand fehlt").await,
         },
 
         ("GET", "/sessions") => match api() {
             Some(client) => match client.sessions().await {
-                Ok(list) => send_ok(stream, json!(list)).await,
-                Err(e) => send_err(stream, 500, e.to_string()).await,
+                Ok(list) => send_ok(stream, &cors, json!(list)).await,
+                Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
             },
-            None => send_err(stream, 500, "Zustand fehlt").await,
+            None => send_err(stream, &cors, 500, "Zustand fehlt").await,
         },
 
         ("GET", "/messages") => {
             let session = req.arg("session");
             match api() {
                 Some(client) => match client.turns(&session).await {
-                    Ok(list) => send_ok(stream, json!(list)).await,
-                    Err(e) => send_err(stream, 500, e.to_string()).await,
+                    Ok(list) => send_ok(stream, &cors, json!(list)).await,
+                    Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
                 },
-                None => send_err(stream, 500, "Zustand fehlt").await,
+                None => send_err(stream, &cors, 500, "Zustand fehlt").await,
             }
         }
 
         ("POST", "/session/create") => match api() {
             Some(client) => match client.create_session().await {
-                Ok(s) => send_ok(stream, json!(s)).await,
-                Err(e) => send_err(stream, 500, e.to_string()).await,
+                Ok(s) => send_ok(stream, &cors, json!(s)).await,
+                Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
             },
-            None => send_err(stream, 500, "Zustand fehlt").await,
+            None => send_err(stream, &cors, 500, "Zustand fehlt").await,
         },
 
         ("POST", "/session/patch") => {
@@ -335,10 +391,10 @@ async fn route(req: Req, stream: &mut TcpStream) {
             }
             match api() {
                 Some(client) => match client.patch_session(&id, Value::Object(patch)).await {
-                    Ok(()) => send_ok(stream, json!({ "ok": true })).await,
-                    Err(e) => send_err(stream, 500, e.to_string()).await,
+                    Ok(()) => send_ok(stream, &cors, json!({ "ok": true })).await,
+                    Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
                 },
-                None => send_err(stream, 500, "Zustand fehlt").await,
+                None => send_err(stream, &cors, 500, "Zustand fehlt").await,
             }
         }
 
@@ -346,10 +402,10 @@ async fn route(req: Req, stream: &mut TcpStream) {
             let id = req.arg("sessionId");
             match api() {
                 Some(client) => match client.delete_session(&id).await {
-                    Ok(()) => send_ok(stream, json!({ "ok": true })).await,
-                    Err(e) => send_err(stream, 500, e.to_string()).await,
+                    Ok(()) => send_ok(stream, &cors, json!({ "ok": true })).await,
+                    Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
                 },
-                None => send_err(stream, 500, "Zustand fehlt").await,
+                None => send_err(stream, &cors, 500, "Zustand fehlt").await,
             }
         }
 
@@ -363,8 +419,8 @@ async fn route(req: Req, stream: &mut TcpStream) {
                 None => Err("Kein Zugangsschlüssel hinterlegt.".to_string()),
             };
             match outcome {
-                Ok(v) => send_ok(stream, v).await,
-                Err(e) => send_err(stream, 500, e).await,
+                Ok(v) => send_ok(stream, &cors, v).await,
+                Err(e) => send_err(stream, &cors, 500, e).await,
             }
         }
 
@@ -375,14 +431,14 @@ async fn route(req: Req, stream: &mut TcpStream) {
                 req.arg("sessionId"),
                 req.arg("text").chars().count()
             );
-            chat(req, stream).await
+            chat(req, stream, &cors).await
         }
 
         ("POST", "/media") => {
             let path = req.arg("path");
             match aesmyra_core::media::data_url(&path) {
-                Ok(url) => send_ok(stream, json!(url)).await,
-                Err(e) => send_err(stream, 400, e).await,
+                Ok(url) => send_ok(stream, &cors, json!(url)).await,
+                Err(e) => send_err(stream, &cors, 400, e).await,
             }
         }
 
@@ -390,7 +446,7 @@ async fn route(req: Req, stream: &mut TcpStream) {
             let sid = req.arg("sessionId");
             let stopped: Vec<Run> = if sid.is_empty() { take_all() } else { take_session(&sid) };
             if stopped.is_empty() {
-                send_ok(stream, json!({ "ok": true, "stopped": 0 })).await;
+                send_ok(stream, &cors, json!({ "ok": true, "stopped": 0 })).await;
                 return;
             }
             let n = stopped.len();
@@ -399,7 +455,7 @@ async fn route(req: Req, stream: &mut TcpStream) {
                 let _ = run.tx.send(UiEvent::Cancelled { run_id: String::new() }).await;
                 let _ = run.tx.send(UiEvent::Finished { run_id: String::new(), ok: false }).await;
             }
-            send_ok(stream, json!({ "ok": true, "stopped": n })).await;
+            send_ok(stream, &cors, json!({ "ok": true, "stopped": n })).await;
         }
 
         ("POST", "/steer") => {
@@ -407,10 +463,10 @@ async fn route(req: Req, stream: &mut TcpStream) {
             let message = req.arg("message");
             match api() {
                 Some(client) => match client.steer(&run_id, &message).await {
-                    Ok(()) => send_ok(stream, json!({ "ok": true })).await,
-                    Err(e) => send_err(stream, 500, e.to_string()).await,
+                    Ok(()) => send_ok(stream, &cors, json!({ "ok": true })).await,
+                    Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
                 },
-                None => send_err(stream, 500, "Zustand fehlt").await,
+                None => send_err(stream, &cors, 500, "Zustand fehlt").await,
             }
         }
 
@@ -418,10 +474,10 @@ async fn route(req: Req, stream: &mut TcpStream) {
             let run_id = req.arg("runId");
             match api() {
                 Some(client) => match client.run_state(&run_id).await {
-                    Ok(v) => send_ok(stream, v).await,
-                    Err(e) => send_err(stream, 500, e.to_string()).await,
+                    Ok(v) => send_ok(stream, &cors, v).await,
+                    Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
                 },
-                None => send_err(stream, 500, "Zustand fehlt").await,
+                None => send_err(stream, &cors, 500, "Zustand fehlt").await,
             }
         }
 
@@ -436,10 +492,10 @@ async fn route(req: Req, stream: &mut TcpStream) {
                 .unwrap_or(0);
             match api() {
                 Some(client) => match client.approve(&run_id, &choice, &request_id, generation).await {
-                    Ok(()) => send_ok(stream, json!({ "ok": true })).await,
-                    Err(e) => send_err(stream, 500, e.to_string()).await,
+                    Ok(()) => send_ok(stream, &cors, json!({ "ok": true })).await,
+                    Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
                 },
-                None => send_err(stream, 500, "Zustand fehlt").await,
+                None => send_err(stream, &cors, 500, "Zustand fehlt").await,
             }
         }
 
@@ -455,49 +511,44 @@ async fn route(req: Req, stream: &mut TcpStream) {
                             inner.cfg = cfg;
                             inner.api = Arc::new(client);
                         }
-                        send_ok(stream, json!(view)).await;
+                        send_ok(stream, &cors, json!(view)).await;
                     }
-                    Err(e) => send_err(stream, 400, e.to_string()).await,
+                    Err(e) => send_err(stream, &cors, 400, e.to_string()).await,
                 },
-                Err(e) => send_err(stream, 400, e).await,
+                Err(e) => send_err(stream, &cors, 400, e).await,
             }
         }
 
         ("POST", "/settings/test") => match api() {
             Some(client) => match client.sessions().await {
-                Ok(list) => send_ok(stream, json!({ "message": format!("{} Gespräche erreichbar", list.len()) })).await,
+                Ok(list) => send_ok(stream, &cors, json!({ "message": format!("{} Gespräche erreichbar", list.len()) })).await,
                 Err(ApiError::Status(401 | 403, _)) => {
-                    send_err(stream, 500, "Der Server hat den Schlüssel abgelehnt.").await
+                    send_err(stream, &cors, 500, "Der Server hat den Schlüssel abgelehnt.").await
                 }
-                Err(e) => send_err(stream, 500, e.to_string()).await,
+                Err(e) => send_err(stream, &cors, 500, e.to_string()).await,
             },
-            None => send_err(stream, 500, "Zustand fehlt").await,
+            None => send_err(stream, &cors, 500, "Zustand fehlt").await,
         },
 
-        _ => send_err(stream, 404, "unbekannter Weg").await,
+        _ => send_err(stream, &cors, 404, "unbekannter Weg").await,
     }
 }
 
 /* ── Lauf ───────────────────────────────────────────────────────────── */
 
 fn run_error_text(e: &ApiError) -> String {
-    match e {
-        ApiError::Status(401 | 403, _) => "Der Server hat den Schlüssel abgelehnt.".to_string(),
-        ApiError::Timeout => "Zeitüberschreitung".to_string(),
-        ApiError::Unreachable => "Server nicht erreichbar.".to_string(),
-        other => other.to_string(),
-    }
+    aesmyra_core::api::error_text(e)
 }
 
-async fn chat(req: Req, stream: &mut TcpStream) {
+async fn chat(req: Req, stream: &mut TcpStream, cors: &str) {
     let Some(client) = api() else {
-        send_err(stream, 500, "Zustand fehlt").await;
+        send_err(stream, cors, 500, "Zustand fehlt").await;
         return;
     };
     let session_id = req.arg("sessionId");
     let text = req.arg("text");
     if session_id.is_empty() || text.is_empty() {
-        send_err(stream, 400, "Sitzung oder Text fehlt").await;
+        send_err(stream, cors, 400, "Sitzung oder Text fehlt").await;
         return;
     }
 
@@ -523,17 +574,38 @@ async fn chat(req: Req, stream: &mut TcpStream) {
     };
     store_run(Run { id, sid: session_id.clone(), tx, task: producer });
 
-    if !start_stream(stream).await {
+    if !start_stream(stream, cors).await {
         take_run_id(id);
         return;
     }
 
-    while let Some(event) = rx.recv().await {
-        if !send_event(stream, &event).await {
-            break;
-        }
-        if matches!(event, UiEvent::Finished { .. }) {
-            break;
+    let mut ping = tokio::time::interval(Duration::from_secs(10));
+    ping.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    ping.tick().await; // erster Tick kommt sofort, der wird verbraucht
+
+    loop {
+        tokio::select! {
+            maybe = rx.recv() => {
+                let Some(event) = maybe else { break };
+                if !send_event(stream, &event).await {
+                    break;
+                }
+                if matches!(event, UiEvent::Finished { .. }) {
+                    break;
+                }
+            }
+            _ = ping.tick() => {
+                // Kommentarzeile statt Ereignis: zeigt dem Betrachter, dass die
+                // Verbindung lebt, während der Lauf auf etwas wartet (etwa auf
+                // eine Freigabe). Ohne sie sieht ein stiller Lauf wie ein
+                // abgerissener Strom aus.
+                if stream.write_all(b": ping\n\n").await.is_err() {
+                    break;
+                }
+                if stream.flush().await.is_err() {
+                    break;
+                }
+            }
         }
     }
 
