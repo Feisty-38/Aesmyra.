@@ -1880,6 +1880,7 @@ function renderApprovals(animate = false) {
     return `<div class="ap${a.decided ? ' done' : ''}" data-rid="${esc(a.request_id)}">
       <b>Freigabe nötig</b>
       <code>${esc(a.command || 'Werkzeugaufruf')}</code>${row}
+      <span class="aph">Ohne Antwort verwirft der Server die Freigabe und der Lauf endet.</span>
     </div>`;
   }).join('');
 

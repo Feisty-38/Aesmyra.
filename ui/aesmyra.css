@@ -686,6 +686,7 @@ body[data-platform="mobile"] .idx-head{padding-top:env(safe-area-inset-top);heig
 }
 .ap button:hover{color:var(--d-fg);background:rgba(var(--wash),.05)}
 .ap button.primary{border-color:hsl(var(--acc-h) var(--acc-s) var(--acc-l) / .5);color:var(--d-primary)}
+.ap .aph{display:block;margin-top:9px;font-size:11.5px;line-height:1.45;color:var(--d-dim)}
 
 /* ── Einrichtung als vierte Ansicht ────────────── */
 
