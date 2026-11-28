@@ -22,7 +22,7 @@
 
 ## Was ist Aesmyra?
 
-Aesmyra ist eine eigenständige Oberfläche für [Hermes Agent](https://hermes-agent.nousresearch.com/). Statt eines endlosen Chatfensters zeigt Aesmyra eine fortlaufende Übersicht: Jede Sitzung wird ein Gespräch, römisch nummeriert, mit Vorschau und Zeitangabe. Werkzeugaufrufe erscheinen als schmale Notizen, Denkschritte als kursive Einschübe, Freigaben als Kasten mitten im Text. Wer lange mit einem Assistenten arbeitet, soll den Faden behalten — nicht in einer Liste aus Sprechblasen suchen.
+Aesmyra ist eine eigenständige Oberfläche für [Hermes Agent](https://hermes-agent.nousresearch.com/). Statt eines endlosen Chatfensters zeigt Aesmyra eine fortlaufende Übersicht: Jede Sitzung wird ein Gespräch, durchnummeriert, mit Vorschau und Zeitangabe. Werkzeugaufrufe erscheinen als schmale Notizen, Denkschritte als kursive Einschübe, Freigaben als Kasten mitten im Text. Wer lange mit einem Assistenten arbeitet, soll den Faden behalten — nicht in einer Liste aus Sprechblasen suchen.
 
 Der Client spricht ausschließlich mit dem Hermes-API-Server auf dem eigenen Rechner oder im eigenen Netz (Standard `http://127.0.0.1:8642`), per HTTP und SSE. Kein Cloud-Dienst dazwischen, keine Konten, keine Telemetrie.
 
@@ -30,11 +30,11 @@ Technisch ist Aesmyra eine Tauri-2-Anwendung: ein Rust-Kern für Netzwerk, Verla
 
 ## Bilder
 
-![Übersicht am Rechner](docs/bilder/pc-verzeichnis.png)
+![Übersicht am Rechner](docs/bilder/pc-uebersicht.png)
 
 | Übersicht auf Android | Gesprächsansicht |
 | --- | --- |
-| ![Übersicht auf Android](docs/bilder/mobil-verzeichnis.png) | ![Gesprächsansicht mit Notizen](docs/bilder/mobil-leseseite.png) |
+| ![Übersicht auf Android](docs/bilder/mobil-uebersicht.png) | ![Gesprächsansicht mit Werkzeugnotizen](docs/bilder/mobil-gespraech.png) |
 
 | Gesprächs-Aktionen | Einrichtung |
 | --- | --- |
@@ -44,7 +44,7 @@ Technisch ist Aesmyra eine Tauri-2-Anwendung: ein Rust-Kern für Netzwerk, Verla
 
 ### Übersicht
 
-- **Gespräche statt Chats:** jede Sitzung als Eintrag mit römischer Ziffer, Titel, Vorschau und relativer Zeitangabe.
+- **Gespräche statt Chats:** jede Sitzung als Eintrag mit laufender Nummer, Titel, Vorschau und relativer Zeitangabe.
 - **Angeheftete Gespräche** stehen oben und sind mit einem Punkt markiert.
 - **Langes Tippen oder Rechtsklick** öffnet die Aktionen: anheften, umbenennen, löschen.
 - **Nummer** oben rechts (`Nr. 006`) zeigt die Stelle in der Übersicht.

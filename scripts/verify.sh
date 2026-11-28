@@ -3,7 +3,7 @@
 # Aufruf: scripts/verify.sh [pc|mobile|beide]
 
 set -uo pipefail
-cd /home/kev/grace-blatt-rs
+cd /home/kev/aesmyra
 
 OUT="${OUT:-/home/kev/.hermes/cache/scratch}"
 mkdir -p "$OUT"
